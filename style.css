@@ -1,193 +1,358 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-  <meta charset="UTF-8" />
-  <title>ESport Registration</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="style.css" />
+:root {
+  --bg1: #101827;
+  --card: rgba(255, 255, 255, 0.85);
+  --primary: #5b6cff;
+  --primary-dark: #3d4ed3;
+  --danger: #ef4444;
+  --muted: #6b7280;
+  --shadow: 0 20px 50px rgba(0,0,0,0.22);
+  --blur: blur(26px);
+}
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+* {
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
 
-  <!-- Google icons -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" />
-</head>
-<body>
-  <!-- background decoration -->
-  <div class="bg-circles"></div>
-  <div class="bg-circles second"></div>
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: radial-gradient(circle at top, #2a2a72, #000 60%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  position: relative;
+  overflow-x: hidden;
+}
 
-  <div class="app glass">
-    <header class="app-header">
-      <div class="logo-wrap">
-        <div class="logo-circle">ES</div>
-        <div>
-          <h1>ESport Registration</h1>
-          <p>ระบบลงทะเบียนการแข่งขัน / ชมรม / กิจกรรม</p>
-        </div>
-      </div>
-      <div class="app-badge">secure form</div>
-    </header>
+/* background */
+.bg-circles,
+.bg-circles.second {
+  position: fixed;
+  width: 300px;
+  height: 300px;
+  border-radius: 999px;
+  filter: blur(120px);
+  opacity: 0.7;
+  z-index: 0;
+}
+.bg-circles { top: -60px; right: 5%; background: #956bff; }
+.bg-circles.second { bottom: -40px; left: 6%; background: #ff8f5a; }
 
-    <!-- ========== SCREEN 1: ใส่รหัสเดียวจบ ========== -->
-    <section id="login-screen" class="screen active">
-      <h2 class="section-title">เข้าสู่ระบบ</h2>
-      <p class="section-desc">กรอกรหัสนักศึกษาเพื่อเข้าฟอร์มหรือส่วนแอดมิน</p>
+.app {
+  position: relative;
+  z-index: 2;
+  width: min(1000px, 100%);
+  background: var(--card);
+  backdrop-filter: var(--blur);
+  border-radius: 26px;
+  box-shadow: var(--shadow);
+  padding: 22px 26px 34px;
+}
 
-      <div class="input-group big" id="login-input-group">
-        <span class="material-icons-round">badge</span>
-        <input type="text" id="universal-id" autocomplete="off" />
-        <label for="universal-id">รหัสนักศึกษา / รหัสแอดมิน</label>
-        <button id="login-btn" class="btn-icon" title="เข้าสู่ระบบ">
-          <span class="material-icons-round">arrow_forward</span>
-        </button>
-      </div>
-      <p id="login-msg" class="msg"></p>
+/* header */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.logo-wrap {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.logo-circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #5b6cff, #9f99ff);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 700;
+}
+.app-header h1 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #0f172a;
+}
+.app-header p {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.app-badge {
+  background: rgba(15,23,42,0.12);
+  border: 1px solid rgba(15,23,42,0.3);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.7rem;
+  color: #0f172a;
+}
 
-      <div class="hint-box">
-        <span class="material-icons-round">info</span>
-        <div>
-          <strong>หมายเหตุ</strong>
-          <p>ถ้ารหัสนี้เป็นรหัสแอดมินจะเข้าสู่ “โหมดจัดการ” ทันที</p>
-        </div>
-      </div>
-    </section>
+/* screens */
+.screen {
+  display: none;
+  animation: fadeUp 0.28s ease;
+}
+.screen.active {
+  display: block;
+}
+.screen.hidden {
+  display: none;
+}
 
-    <!-- ========== SCREEN 2: ฟอร์มผู้ใช้ ========== -->
-    <section id="user-form-screen" class="screen hidden">
-      <div class="screen-topbar">
-        <div>
-          <h2 class="section-title">แบบฟอร์มสมัครเข้าร่วม</h2>
-          <p class="section-desc">กรอกข้อมูลให้ครบทุกช่องที่จำเป็น</p>
-        </div>
-        <button id="user-back-btn" class="btn ghost-inline tiny">
-          <span class="material-icons-round">arrow_back</span> ออกจากฟอร์ม
-        </button>
-      </div>
-      <form id="dynamic-form" class="form-surface"></form>
-      <p id="user-form-msg" class="msg"></p>
-    </section>
+.section-title {
+  margin: 0 0 4px;
+}
+.section-desc {
+  margin: 0 0 14px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
 
-    <!-- ========== SCREEN 3: เมนูแอดมิน ========== -->
-    <section id="admin-menu-screen" class="screen hidden">
-      <div class="screen-topbar">
-        <div>
-          <h2 class="section-title">แดชบอร์ดผู้ดูแลระบบ</h2>
-          <p class="section-desc">จัดการฟอร์ม รายชื่อ และสิทธิ์การเข้าใช้งาน</p>
-        </div>
-        <button id="admin-logout-btn" class="btn ghost-inline tiny">
-          <span class="material-icons-round">logout</span> ออกจากระบบ
-        </button>
-      </div>
+/* inputs */
+.input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid rgba(148,163,184,0.4);
+  border-radius: 14px;
+  padding-right: 10px;
+  margin-bottom: 12px;
+  transition: 0.16s;
+}
+.input-group.big {
+  height: 60px;
+}
+.input-group:focus-within {
+  border-color: rgba(91,108,255,1);
+  box-shadow: 0 15px 28px rgba(91,108,255,0.15);
+  transform: translateY(-1px);
+}
+.input-group span.material-icons-round {
+  margin-left: 12px;
+  color: #94a3b8;
+}
+.input-group input,
+.input-group select {
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 10px 12px 6px;
+  flex: 1;
+  font-size: 0.9rem;
+}
+.input-group label {
+  position: absolute;
+  top: 6px;
+  left: 42px;
+  font-size: 0.68rem;
+  color: #94a3b8;
+  pointer-events: none;
+}
+.input-group input:placeholder-shown + label {
+  top: 13px;
+}
+.input-group.error {
+  border-color: #ef4444;
+}
 
-      <div class="admin-grid">
-        <button id="admin-edit-form-btn" class="card-btn">
-          <span class="material-icons-round icon-wrap">description</span>
-          <div>
-            <h3>จัดการฟอร์ม</h3>
-            <p>เพิ่ม/แก้ไข/ลบ คำถาม</p>
-          </div>
-        </button>
-        <button id="admin-view-users-btn" class="card-btn">
-          <span class="material-icons-round icon-wrap info">group</span>
-          <div>
-            <h3>ข้อมูลผู้สมัคร</h3>
-            <p>ดูคำตอบทั้งหมดที่ส่งมา</p>
-          </div>
-        </button>
-        <button id="admin-manage-ids-btn" class="card-btn">
-          <span class="material-icons-round icon-wrap warn">verified_user</span>
-          <div>
-            <h3>จัดการรหัส นศ.</h3>
-            <p>เพิ่ม/ลบ ผู้ที่อนุญาตให้เข้าได้</p>
-          </div>
-        </button>
-      </div>
-    </section>
+/* buttons */
+.btn {
+  border: none;
+  border-radius: 14px;
+  padding: 9px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: 0.12s;
+}
+.btn.primary {
+  background: linear-gradient(130deg, #5b6cff, #9f99ff);
+  color: #fff;
+  box-shadow: 0 14px 35px rgba(91,108,255,0.45);
+}
+.btn.primary:hover { transform: translateY(-1px); }
+.btn.ghost-inline {
+  background: transparent;
+  border: 1px solid rgba(91,108,255,.45);
+  color: #0f172a;
+}
+.btn.tiny {
+  font-size: 0.7rem;
+  padding: 6px 10px;
+}
+.btn-icon {
+  background: rgba(91,108,255,0.12);
+  border: none;
+  border-radius: 999px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: #0f172a;
+}
+.btn-icon:hover {
+  background: rgba(91,108,255,0.25);
+}
 
-    <!-- ========== SCREEN 4: หน้าแก้ไขฟอร์ม ========== -->
-    <section id="admin-form-editor-screen" class="screen hidden">
-      <div class="screen-topbar">
-        <div>
-          <h2 class="section-title">จัดการฟอร์ม</h2>
-          <p class="section-desc">ปรับโครงฟอร์มให้ตรงกับงานของคุณ</p>
-        </div>
-        <button id="back-to-admin-menu-1" class="btn ghost-inline tiny">
-          <span class="material-icons-round">arrow_back</span> กลับ
-        </button>
-      </div>
+.msg {
+  font-size: 0.7rem;
+  margin-top: 5px;
+  color: var(--danger);
+}
 
-      <div id="admin-form-list" class="admin-list pretty"></div>
+.hint-box {
+  margin-top: 18px;
+  background: rgba(15,23,42,0.03);
+  border: 1px dashed rgba(15,23,42,0.1);
+  border-radius: 14px;
+  padding: 9px 10px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.hint-box .material-icons-round {
+  color: #6366f1;
+}
+.hint-box p {
+  margin: 3px 0 0;
+  font-size: 0.7rem;
+  color: #4b5563;
+}
 
-      <h3 id="form-editor-title" class="mt-20">เพิ่มคำถามใหม่</h3>
-      <div class="form-surface">
-        <div class="input-group">
-          <span class="material-icons-round">title</span>
-          <input type="text" id="new-question-label" />
-          <label>ชื่อคำถาม</label>
-        </div>
-        <div class="input-group">
-          <span class="material-icons-round">category</span>
-          <select id="new-question-type">
-            <option value="text">ข้อความสั้น (text)</option>
-            <option value="textarea">ข้อความยาว (textarea)</option>
-            <option value="number">ตัวเลข (number)</option>
-            <option value="date">วันที่ (date)</option>
-            <option value="select">ตัวเลือกแบบ dropdown</option>
-            <option value="radio">ตัวเลือกแบบปุ่มกลม (radio)</option>
-          </select>
-          <label>ประเภทคำตอบ</label>
-        </div>
-        <div class="input-group">
-          <span class="material-icons-round">list</span>
-          <input type="text" id="new-question-options" placeholder="ตัวเลือกคั่นด้วย , เมื่อเป็น select / radio" />
-        </div>
-        <button id="add-question-btn" class="btn primary wide">บันทึก</button>
-        <p id="admin-form-msg" class="msg"></p>
-      </div>
-    </section>
+.form-surface {
+  background: rgba(255,255,255,0.8);
+  border: 1px solid rgba(148,163,184,0.35);
+  border-radius: 18px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
-    <!-- ========== SCREEN 5: หน้าแสดงข้อมูลผู้ใช้ ========== -->
-    <section id="admin-users-screen" class="screen hidden">
-      <div class="screen-topbar">
-        <div>
-          <h2 class="section-title">ข้อมูลผู้สมัคร</h2>
-          <p class="section-desc">ดูข้อมูลและเวลาที่ผู้ใช้ส่งแบบฟอร์ม</p>
-        </div>
-        <button id="back-to-admin-menu-2" class="btn ghost-inline tiny">
-          <span class="material-icons-round">arrow_back</span> กลับ
-        </button>
-      </div>
-      <div id="admin-users-list" class="admin-list users"></div>
-      <p id="admin-users-msg" class="msg"></p>
-    </section>
+/* topbar */
+.screen-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
 
-    <!-- ========== SCREEN 6: จัดการรหัส นศ. ========== -->
-    <section id="admin-ids-screen" class="screen hidden">
-      <div class="screen-topbar">
-        <div>
-          <h2 class="section-title">จัดการรหัสนักศึกษา</h2>
-          <p class="section-desc">เพิ่มหรือลบสิทธิ์การเข้าใช้งานหน้าฟอร์ม</p>
-        </div>
-        <button id="back-to-admin-menu-3" class="btn ghost-inline tiny">
-          <span class="material-icons-round">arrow_back</span> กลับ
-        </button>
-      </div>
-      <div id="admin-ids-list" class="admin-list pretty"></div>
+/* admin list */
+.admin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.admin-list.pretty .admin-item {
+  background: rgba(255,255,255,0.75);
+  border: 1px solid rgba(148,163,184,0.25);
+  border-radius: 12px;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+.admin-item .action-btns {
+  display: flex;
+  gap: 5px;
+}
+.btn-edit, .btn-del {
+  border: none;
+  border-radius: 6px;
+  padding: 4px 9px;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+.btn-edit { background: #fde68a; }
+.btn-del { background: #f43f5e; color: #fff; }
+.admin-list.users .admin-item {
+  flex-direction: column;
+  align-items: flex-start;
+}
 
-      <div class="form-surface mt-20">
-        <div class="input-group">
-          <span class="material-icons-round">person_add</span>
-          <input type="text" id="new-student-id" />
-          <label>รหัสนักศึกษาใหม่</label>
-        </div>
-        <button id="add-student-id-btn" class="btn primary wide">เพิ่มรหัส</button>
-        <p id="admin-ids-msg" class="msg"></p>
-      </div>
-    </section>
-  </div>
+/* admin cards */
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  margin-top: 10px;
+}
+.card-btn {
+  background: rgba(255,255,255,0.8);
+  border: 1px solid rgba(148,163,184,0.25);
+  border-radius: 16px;
+  padding: 14px 12px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  cursor: pointer;
+  transition: 0.12s;
+}
+.card-btn:hover { transform: translateY(-2px); }
+.icon-wrap {
+  width: 46px; height: 46px;
+  border-radius: 18px;
+  background: rgba(91,108,255,0.12);
+  color: #5b6cff;
+  display: grid;
+  place-items: center;
+}
+.icon-wrap.info { background: rgba(16,185,129,0.1); color: #059669; }
+.icon-wrap.warn { background: rgba(250,204,21,0.1); color: #f97316; }
 
-  <script src="script.js"></script>
-</body>
-</html>
+.dynamic-field label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 3px;
+  font-size: 0.8rem;
+  color: #1f2937;
+}
+.dynamic-field input,
+.dynamic-field select,
+.dynamic-field textarea {
+  width: 100%;
+  border: 1px solid rgba(148,163,184,0.35);
+  border-radius: 10px;
+  padding: 7px 9px;
+  outline: none;
+  font-size: 0.85rem;
+}
+.dynamic-field textarea { min-height: 76px; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* scrollbar */
+.admin-list::-webkit-scrollbar { width: 5px; }
+.admin-list::-webkit-scrollbar-thumb {
+  background: rgba(15,23,42,0.25);
+  border-radius: 99px;
+}
+
+@media (max-width: 720px) {
+  .app {
+    padding: 16px 14px 30px;
+  }
+  .app-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .screen-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
