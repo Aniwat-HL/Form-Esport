@@ -2,27 +2,29 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>สมัครแข่งขัน E-sport</title>
+  <title>สมัครแข่ง E-sport</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
   <div class="app">
     <h1>จัดการแข่งขัน E-sport</h1>
-    <p>เลือกรูปแบบการเข้าร่วม</p>
 
-    <div id="role-screen">
-      <p id="status">กำลังเช็กจำนวน...</p>
-      <button id="btn-player" class="primary" disabled>สมัครเป็นผู้แข่ง</button>
-      <button id="btn-organizer" class="secondary">สมัครเป็นผู้จัดงาน</button>
-    </div>
+    <section id="role-screen">
+      <p id="status">กำลังเช็คจำนวน...</p>
+      <button id="btn-player" disabled>สมัครเป็นผู้แข่ง</button>
+      <button id="btn-organizer">สมัครเป็นผู้จัดงาน</button>
+    </section>
 
-    <div id="form-screen" class="hidden">
+    <section id="form-screen" class="hidden">
       <h2 id="form-title"></h2>
       <form id="regForm">
-        <input type="hidden" name="role" id="roleInput" />
+        <input type="hidden" id="roleInput" name="role" />
 
-        <label>อีเมล (ม.อ.)</label>
+        <label>อีเมล</label>
         <input type="email" name="email" required />
 
         <label>รหัสนักศึกษา</label>
@@ -31,11 +33,11 @@
         <label>ชื่อ-นามสกุล</label>
         <input type="text" name="fullname" required />
 
-        <button type="submit" class="primary">ส่งข้อมูล</button>
+        <button type="submit">ส่งข้อมูล</button>
         <p id="form-msg"></p>
       </form>
-      <button id="backBtn" class="ghost">ย้อนกลับ</button>
-    </div>
+      <button id="backBtn">ย้อนกลับ</button>
+    </section>
   </div>
 
   <script src="script.js"></script>
