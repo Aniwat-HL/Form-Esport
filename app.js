@@ -12,10 +12,10 @@ const db = firebase.firestore();
 
 const ADMIN_CODE = "0826940174";
 
-// admin helpers
-let currentOptionList = [];    // ตัวเลือกของคำถามใหม่ (type=select)
-let REG_CACHE = [];           // เก็บผู้สมัครทั้งหมด
-let FORM_QUESTION_CACHE = []; // เก็บหัวตารางจาก form_questions
+// ตัวแปร admin
+let currentOptionList = [];    // ตัวเลือกของแบบฟอร์มใหม่ (select)
+let REG_CACHE = [];           // ผู้สมัครทั้งหมด
+let FORM_QUESTION_CACHE = []; // หัวตารางผู้สมัคร
 
 /* =========================================================
    1) LOGIN PAGE (index.html)
@@ -63,19 +63,14 @@ if (logoutUserBtn) {
   document.getElementById("submit-user-form").addEventListener("click", submitUserForm);
 }
 
-/**
- * renderUserForm
- * - ดึงฟอร์ม
- * - ดึงคำตอบทั้งหมด
- * - นับว่าแต่ละ option ถูกใช้ไปกี่ครั้ง → แสดง (ใช้ไป/โควต้า)
- */
+// render แบบฟอร์มฝั่ง user
 async function renderUserForm() {
   const wrap = document.getElementById("user-form-container");
   if (!wrap) return;
 
   const qSnap = await db.collection("form_questions").orderBy("order", "asc").get();
 
-  // ดึง registrations ทั้งหมดมานับ
+  // นับว่าตัวเลือกไหนใช้ไปกี่คนจาก registrations
   const regSnap = await db.collection("registrations").get();
   const counts = {}; // counts[qid][optionLabel] = used
   regSnap.forEach(doc => {
@@ -125,9 +120,7 @@ async function renderUserForm() {
   });
 }
 
-/**
- * ส่งแบบฟอร์ม (เช็กโควต้าซ้ำอีกครั้ง)
- */
+// ส่งฟอร์มฝั่ง user + เช็กโควต้าอีกครั้ง
 async function submitUserForm() {
   const uid = localStorage.getItem("studentId");
   if (!uid) return;
@@ -136,13 +129,13 @@ async function submitUserForm() {
   const questions = {};
   qSnap.forEach(d => questions[d.id] = d.data());
 
-  // เก็บคำตอบ
+  // เก็บคำตอบจากหน้า
   const answers = {};
   document.querySelectorAll("[data-id]").forEach(el => {
     answers[el.dataset.id] = el.value;
   });
 
-  // เช็กทุก dropdown ที่มี limit
+  // เช็กโควต้าตัวเลือกอีกชั้น
   for (const qId in answers) {
     const q = questions[qId];
     if (!q) continue;
@@ -152,7 +145,7 @@ async function submitUserForm() {
     const opt = q.options.find(o => o.label === userChoice);
     if (!opt || !opt.limit) continue;
 
-    // นับจริงจากฐานข้อมูล
+    // นับจริง
     const regSnap = await db.collection("registrations").get();
     let used = 0;
     regSnap.forEach(doc => {
@@ -168,7 +161,6 @@ async function submitUserForm() {
     }
   }
 
-  // บันทึก
   await db.collection("registrations").doc(uid).set({
     userId: uid,
     answers,
@@ -201,7 +193,7 @@ if (logoutAdminBtn) {
     });
   });
 
-  // controls ของ dropdown
+  // controls ของ dropdown ตอนเพิ่มคำถาม
   const typeSelect = document.getElementById("new-q-type");
   const optWrap = document.getElementById("new-q-options-wrap");
   const optInput = document.getElementById("new-q-option-input");
@@ -236,7 +228,7 @@ if (logoutAdminBtn) {
     });
   }
 
-  // โหลดข้อมูล admin
+  // โหลดข้อมูลทั้งหมด
   loadQuestions();
   loadRegistrations();
   loadAllowed();
@@ -379,7 +371,7 @@ async function loadRegistrations() {
   const tableEl = document.getElementById("registrations-table");
   if (!tableEl) return;
 
-  // 1) โหลดคำถาม → ใช้เป็นหัวตาราง
+  // 1) โหลดหัวตาราง
   const qSnap = await db.collection("form_questions").orderBy("order", "asc").get();
   FORM_QUESTION_CACHE = [];
   qSnap.forEach(d => {
@@ -389,7 +381,7 @@ async function loadRegistrations() {
     });
   });
 
-  // 2) โหลดผู้สมัคร (กัน createdAt.toDate error)
+  // 2) โหลดผู้สมัคร + กัน createdAt ไม่มี
   const snap = await db.collection("registrations").orderBy("createdAt", "desc").get();
   REG_CACHE = [];
   snap.forEach(d => {
@@ -406,7 +398,7 @@ async function loadRegistrations() {
     });
   });
 
-  // 3) แสดงตาราง
+  // 3) render
   renderRegistrationsTable(REG_CACHE);
 
   // 4) ผูก search
@@ -499,33 +491,73 @@ window.removeAllowed = async function(id) {
   loadAllowed();
 };
 
-/* ---------- ADMIN: Roles ---------- */
+/* ---------- ADMIN: Roles (เวอร์ชันแก้แล้ว) ---------- */
 async function loadRoles() {
   const box = document.getElementById("roles-list");
   if (!box) return;
-  const snap = await db.collection("roles").get();
-  box.innerHTML = "";
-  snap.forEach(d => {
-    const r = d.data();
-    const div = document.createElement("div");
-    div.className = "list-item";
-    div.innerHTML = `
-      <span>${r.label} (${r.max})</span>
-      <button class="btn ghost sm" onclick="deleteRole('${d.id}')">ลบ</button>
-    `;
-    box.appendChild(div);
-  });
+
+  try {
+    const snap = await db.collection("roles").get();
+
+    box.innerHTML = "";
+    if (snap.empty) {
+      box.innerHTML = `<div class="muted small" style="padding:.5rem 0;">ยังไม่มี Role ในระบบ</div>`;
+      return;
+    }
+
+    snap.forEach(d => {
+      const r = d.data();
+      const div = document.createElement("div");
+      div.className = "list-item";
+      div.innerHTML = `
+        <div>
+          <strong>${r.label || d.id}</strong>
+          <div class="muted small">รับได้สูงสุด: ${typeof r.max === "number" ? r.max : "-"}</div>
+        </div>
+        <button class="btn ghost sm" onclick="deleteRole('${d.id}')">ลบ</button>
+      `;
+      box.appendChild(div);
+    });
+  } catch (err) {
+    console.error("loadRoles error:", err);
+    box.innerHTML = `<div class="muted small" style="color:#b91c1c;">โหลด Role ไม่ได้: ${err.message}</div>`;
+  }
 }
+
 async function addRole() {
-  const label = document.getElementById("new-role-label").value.trim();
-  const max = parseInt(document.getElementById("new-role-max").value || "0", 10);
-  if (!label) return;
-  await db.collection("roles").add({ label, max });
-  document.getElementById("new-role-label").value = "";
-  document.getElementById("new-role-max").value = "";
-  loadRoles();
+  const labelEl = document.getElementById("new-role-label");
+  const maxEl = document.getElementById("new-role-max");
+  const label = labelEl.value.trim();
+  const maxRaw = maxEl.value.trim();
+
+  if (!label) {
+    alert("กรอกชื่อบทบาทก่อน");
+    return;
+  }
+
+  const max = maxRaw ? parseInt(maxRaw, 10) : null;
+
+  try {
+    await db.collection("roles").add({
+      label,
+      max
+    });
+
+    labelEl.value = "";
+    maxEl.value = "";
+    loadRoles();
+  } catch (err) {
+    console.error("addRole error:", err);
+    alert("เพิ่ม role ไม่ได้: " + err.message);
+  }
 }
+
 window.deleteRole = async function(id) {
-  await db.collection("roles").doc(id).delete();
-  loadRoles();
+  try {
+    await db.collection("roles").doc(id).delete();
+    loadRoles();
+  } catch (err) {
+    console.error("deleteRole error:", err);
+    alert("ลบ role ไม่ได้: " + err.message);
+  }
 };
