@@ -3,47 +3,48 @@
 <head>
   <meta charset="UTF-8" />
   <title>ESport Registration</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
-  <!-- ==== GLOBAL TOAST ==== -->
+  <!-- toast -->
   <div id="toast" class="toast hidden"></div>
 
-  <!-- ==== LOGIN ==== -->
+  <!-- ================= LOGIN ================= -->
   <section id="login-screen" class="screen active">
     <div class="login-shell">
       <div class="login-panel glass">
         <div class="brand">
           <div class="brand-icon">ES</div>
           <div>
-            <h1>กิจกรรม E-Sport</h1>
-            <p>ระบบลงทะเบียน | PSU Phuket</p>
+            <h1>ระบบลงทะเบียนกิจกรรม</h1>
+            <p class="text-muted">PSU Phuket</p>
           </div>
         </div>
-        <p class="text-muted">กรอกรหัสนักศึกษา หรือรหัสผู้ดูแล</p>
-        <input id="student-id-input" type="text" placeholder="6530xxxxxx หรือ 0826940174" />
+        <p class="text-muted">กรอกรหัสนักศึกษา หรือรหัสแอดมิน</p>
+        <input id="student-id-input" type="text" placeholder="เช่น 6530611018 หรือ 0826940174" />
         <button id="login-btn" class="btn primary full">เข้าสู่ระบบ</button>
-        <p class="foot-note">ถ้าเข้าไม่ได้ ให้แอดมินเพิ่มใน <strong>allowed_students</strong></p>
+        <p class="foot-note">หากขึ้นว่า “ยังไม่ได้รับอนุญาต” ให้แอดมินเพิ่มใน <strong>allowed_students</strong></p>
       </div>
       <div class="login-side">
-        <h2>ฟีเจอร์</h2>
+        <h2>ฟีเจอร์ที่มีตอนนี้</h2>
         <ul>
-          <li>ฟอร์มสร้างจาก Firestore อัตโนมัติ</li>
-          <li>จำกัดจำนวนบทบาทได้</li>
-          <li>แอดมินจัดการฟอร์ม, ผู้สมัคร, รหัสเข้า, Role</li>
+          <li>เช็กสิทธิ์จากรหัสเดียว (Student + Admin)</li>
+          <li>ฟอร์มถูกสร้างจาก Firestore อัตโนมัติ</li>
+          <li>Dropdown จำกัดจำนวนแบบ role ได้</li>
+          <li>แอดมินจัดการแบบฟอร์ม/ผู้สมัคร/รหัสอนุญาต/Role</li>
         </ul>
       </div>
     </div>
   </section>
 
-  <!-- ==== USER FORM ==== -->
+  <!-- ================= USER FORM ================= -->
   <section id="user-form-screen" class="screen">
     <header class="topbar">
-      <div class="top-left">
+      <div>
         <h2>ลงทะเบียนเข้าร่วมกิจกรรม</h2>
         <p class="text-muted">กรอกข้อมูลให้ครบถ้วนก่อนส่ง</p>
       </div>
@@ -52,10 +53,9 @@
         <button id="logout-btn-user" class="btn ghost sm">ออกจากระบบ</button>
       </div>
     </header>
-
     <div class="content-shell">
       <div id="user-form-container" class="form-shell">
-        <!-- will be rendered -->
+        <!-- สร้างด้วย JS -->
       </div>
       <div class="form-footer">
         <button id="submit-user-form" class="btn primary">ส่งแบบฟอร์ม</button>
@@ -64,9 +64,9 @@
     </div>
   </section>
 
-  <!-- ==== ADMIN DASHBOARD ==== -->
+  <!-- ================= ADMIN DASHBOARD ================= -->
   <section id="admin-screen" class="screen admin-root">
-    <!-- SIDE NAV -->
+    <!-- sidebar -->
     <aside class="admin-sidebar">
       <div class="admin-brand">
         <span class="admin-logo">ES</span>
@@ -94,18 +94,17 @@
       </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
+    <!-- main -->
     <main class="admin-main">
-      <!-- topbar -->
       <header class="admin-top">
         <div>
           <h2 id="admin-page-title">จัดการแบบฟอร์ม</h2>
-          <p class="text-muted">แอดมินเพิ่ม/ลบ/แก้ไข/ลากเรียงได้ทั้งหมด</p>
+          <p class="text-muted">แอดมินเพิ่ม/แก้ไข/ลบ/ย้ายลำดับได้จากหน้าเดียว</p>
         </div>
       </header>
 
       <div class="admin-content">
-        <!-- FORM MANAGEMENT -->
+        <!-- ========== TAB: FORM ========== -->
         <div id="admin-form-screen" class="admin-tab active">
           <div class="two-col">
             <div>
@@ -139,7 +138,7 @@
           </div>
         </div>
 
-        <!-- REGISTRATIONS -->
+        <!-- ========== TAB: USERS ========== -->
         <div id="admin-users-screen" class="admin-tab">
           <div class="card glass mb">
             <label>ค้นหาด้วยรหัสนักศึกษา</label>
@@ -150,7 +149,7 @@
           </div>
         </div>
 
-        <!-- ALLOWED STUDENTS -->
+        <!-- ========== TAB: ALLOWED ========== -->
         <div id="admin-ids-screen" class="admin-tab">
           <div class="card glass mb">
             <h3>เพิ่มรหัสที่อนุญาต</h3>
@@ -164,7 +163,7 @@
           </div>
         </div>
 
-        <!-- ROLE LIMITS -->
+        <!-- ========== TAB: ROLE LIMITS ========== -->
         <div id="admin-roles-screen" class="admin-tab">
           <div class="card glass mb">
             <h3>เพิ่มบทบาทใหม่</h3>
