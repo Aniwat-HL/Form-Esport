@@ -117,7 +117,7 @@ document.addEventListener("DOMContentLoaded", () => {
       wrap.appendChild(label);
 
       // 📌 auto email
-      if (q.label === "อีเมล (ใช้อีเมลของมหาวิทยาลัยเท่านั้น)") {
+      if (q.label === "อีเมล") {
         const inp = document.createElement("input");
         inp.type = "email";
         inp.name = q.id;
