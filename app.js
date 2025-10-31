@@ -391,7 +391,7 @@ async function loadRegistrations() {
       created = data.createdAt.toDate();
     }
     REG_CACHE.push({
-      id: d.id,
+      id: d.id,                     // ไว้ใช้ลบ
       userId: data.userId || d.id,
       answers: data.answers || {},
       createdAt: created
@@ -418,6 +418,68 @@ async function loadRegistrations() {
     searchInput.dataset.bound = "1";
   }
 }
+
+function renderRegistrationsTable(items) {
+  const tableEl = document.getElementById("registrations-table");
+  const totalLabel = document.getElementById("reg-total-label");
+  if (!tableEl) return;
+
+  // head (+1 คอลัมน์ปุ่มลบ)
+  let theadHtml = `<thead><tr>
+    <th class="sticky-col">รหัส นศ.</th>
+    <th>เวลาส่ง</th>
+    ${FORM_QUESTION_CACHE.map(q => `<th>${q.label}</th>`).join("")}
+    <th>จัดการ</th>
+  </tr></thead>`;
+
+  // body
+  let tbodyHtml = "<tbody>";
+  if (!items.length) {
+    tbodyHtml += `<tr><td colspan="${3 + FORM_QUESTION_CACHE.length}" style="padding:.75rem;">ไม่พบข้อมูล</td></tr>`;
+  } else {
+    items.forEach(r => {
+      tbodyHtml += `<tr>
+        <td class="sticky-col">${r.userId}</td>
+        <td>${r.createdAt instanceof Date ? r.createdAt.toLocaleString() : ""}</td>
+        ${FORM_QUESTION_CACHE.map(q => {
+          const val = r.answers[q.id];
+          if (val && typeof val === "object" && "value" in val) {
+            return `<td>${val.value}</td>`;
+          }
+          return `<td>${val ? val : ""}</td>`;
+        }).join("")}
+        <td>
+          <button class="btn ghost sm" onclick="deleteRegistration('${r.id}')">ลบ</button>
+        </td>
+      </tr>`;
+    });
+  }
+  tbodyHtml += "</tbody>";
+
+  tableEl.innerHTML = theadHtml + tbodyHtml;
+
+  if (totalLabel) {
+    totalLabel.textContent = items.length
+      ? `พบ ${items.length} รายการ (ทั้งหมด ${REG_CACHE.length})`
+      : `ไม่พบข้อมูล (ทั้งหมด ${REG_CACHE.length})`;
+  }
+}
+
+/* ลบผู้สมัครทีละรายการ */
+window.deleteRegistration = async function(regId) {
+  const ok = confirm("ต้องการลบรายการนี้จริง ๆ ไหม?");
+  if (!ok) return;
+  try {
+    await db.collection("registrations").doc(regId).delete();
+    // เอาออกจาก cache แล้ว render ใหม่
+    REG_CACHE = REG_CACHE.filter(r => r.id !== regId);
+    renderRegistrationsTable(REG_CACHE);
+  } catch (err) {
+    console.error("deleteRegistration error:", err);
+    alert("ลบไม่ได้: " + err.message);
+  }
+};
+
 
 function renderRegistrationsTable(items) {
   const tableEl = document.getElementById("registrations-table");
