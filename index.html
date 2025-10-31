@@ -4,195 +4,104 @@
   <meta charset="UTF-8" />
   <title>ESport Registration</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="style.css" />
 
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <!-- Google icons -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- background decoration -->
-  <div class="bg-circles"></div>
-  <div class="bg-circles second"></div>
+  <div class="app">
+    <h1>ESport Registration</h1>
 
-  <div class="app glass">
-    <header class="app-header">
-      <div class="logo-wrap">
-        <div class="logo-circle">ES</div>
-        <div>
-          <h1>ESport Registration</h1>
-          <p>ระบบลงทะเบียนการแข่งขัน / ชมรม / กิจกรรม</p>
-        </div>
-      </div>
-      <div class="app-badge">secure form</div>
-    </header>
-
-    <!-- ========== SCREEN 1: ใส่รหัสเดียวจบ ========== -->
+    <!-- ================== SCREEN: LOGIN ================== -->
     <section id="login-screen" class="screen active">
-      <h2 class="section-title">เข้าสู่ระบบ</h2>
-      <p class="section-desc">กรอกรหัสนักศึกษา ถ้าเป็นรหัสแอดมินจะเข้าหน้าแอดมินทันที</p>
-
-      <div class="input-group big" id="login-input-group">
-        <span class="material-icons-round">badge</span>
-        <input type="text" id="universal-id" autocomplete="off" />
-        <label for="universal-id">รหัสนักศึกษา / รหัสแอดมิน</label>
-        <button id="login-btn" class="btn-icon" title="เข้าสู่ระบบ">
-          <span class="material-icons-round">arrow_forward</span>
-        </button>
-      </div>
+      <h2>เข้าสู่ระบบ</h2>
+      <p>ใส่รหัสนักศึกษา ถ้าเป็นแอดมินจะเข้าส่วนแอดมินทันที</p>
+      <input type="text" id="universal-id" placeholder="รหัสนักศึกษา / รหัสแอดมิน" />
+      <button id="login-btn">เข้าสู่ระบบ</button>
       <p id="login-msg" class="msg"></p>
-
-      <div class="hint-box">
-        <span class="material-icons-round">info</span>
-        <div>
-          <strong>หมายเหตุ</strong>
-          <p>แอดมินใช้รหัสพิเศษที่ตั้งในโค้ด ส่วนผู้ใช้ทั่วไปต้องอยู่ใน <code>allowed_students</code> ก่อน</p>
-        </div>
-      </div>
     </section>
 
-    <!-- ========== SCREEN 2: ฟอร์มผู้ใช้ ========== -->
-    <section id="user-form-screen" class="screen hidden">
-      <div class="screen-topbar">
-        <div>
-          <h2 class="section-title">แบบฟอร์มสมัครเข้าร่วม</h2>
-          <p class="section-desc">กรอกข้อมูลให้ครบทุกช่องที่จำเป็น</p>
-        </div>
-        <button id="user-back-btn" class="btn ghost-inline tiny">
-          <span class="material-icons-round">arrow_back</span> ออกจากฟอร์ม
-        </button>
-      </div>
-      <form id="dynamic-form" class="form-surface"></form>
+    <!-- ================== SCREEN: USER FORM ================== -->
+    <section id="user-form-screen" class="screen">
+      <h2>แบบฟอร์มสมัคร</h2>
+      <form id="dynamic-form"></form>
       <p id="user-form-msg" class="msg"></p>
+      <button id="user-back-btn">ออกจากระบบ</button>
     </section>
 
-    <!-- ========== SCREEN 3: เมนูแอดมิน ========== -->
-    <section id="admin-menu-screen" class="screen hidden">
-      <div class="screen-topbar">
-        <div>
-          <h2 class="section-title">แดชบอร์ดผู้ดูแลระบบ</h2>
-          <p class="section-desc">จัดการฟอร์ม รายชื่อ และสิทธิ์การเข้าใช้งาน</p>
-        </div>
-        <button id="admin-logout-btn" class="btn ghost-inline tiny">
-          <span class="material-icons-round">logout</span> ออกจากระบบ
-        </button>
-      </div>
-
-      <div class="admin-grid">
-        <button id="admin-edit-form-btn" class="card-btn">
-          <span class="material-icons-round icon-wrap">description</span>
-          <div>
-            <h3>จัดการฟอร์ม</h3>
-            <p>เพิ่ม / แก้ไข / ลบ คำถาม</p>
-          </div>
-        </button>
-        <button id="admin-view-users-btn" class="card-btn">
-          <span class="material-icons-round icon-wrap info">group</span>
-          <div>
-            <h3>ข้อมูลผู้สมัคร</h3>
-            <p>ดูคำตอบทั้งหมด</p>
-          </div>
-        </button>
-        <button id="admin-manage-ids-btn" class="card-btn">
-          <span class="material-icons-round icon-wrap warn">verified_user</span>
-          <div>
-            <h3>จัดการรหัส นศ.</h3>
-            <p>เพิ่ม/ลบ ผู้ที่อนุญาตให้เข้าได้</p>
-          </div>
-        </button>
-      </div>
+    <!-- ================== SCREEN: ADMIN MENU ================== -->
+    <section id="admin-menu-screen" class="screen">
+      <h2>แดชบอร์ดแอดมิน</h2>
+      <button id="admin-edit-form-btn">จัดการฟอร์ม</button>
+      <button id="admin-view-users-btn">ดูคำตอบผู้ใช้</button>
+      <button id="admin-manage-ids-btn">จัดการรหัส นศ.</button>
+      <button id="admin-logout-btn">ออกจากระบบ</button>
     </section>
 
-    <!-- ========== SCREEN 4: แก้ไขฟอร์ม (เวอร์ชันไม่บัคลอย label) ========== -->
-    <section id="admin-form-editor-screen" class="screen hidden">
-      <div class="screen-topbar">
-        <div>
-          <h2 class="section-title">จัดการฟอร์ม</h2>
-          <p class="section-desc">ปรับโครงฟอร์มให้ตรงกับงานของคุณ</p>
-        </div>
-        <button id="back-to-admin-menu-1" class="btn ghost-inline tiny">
-          <span class="material-icons-round">arrow_back</span> กลับ
-        </button>
-      </div>
+    <!-- ================== SCREEN: ADMIN FORM EDITOR ================== -->
+    <section id="admin-form-editor-screen" class="screen">
+      <h2>จัดการฟอร์ม</h2>
+      <div id="admin-form-list" class="list-box"></div>
 
-      <!-- รายการคำถามที่มีอยู่ -->
-      <div id="admin-form-list" class="admin-list pretty"></div>
+      <h3 id="form-editor-title">เพิ่มคำถามใหม่</h3>
+      <div class="box">
+        <label>ชื่อคำถาม</label>
+        <input type="text" id="new-question-label" />
 
-      <h3 id="form-editor-title" class="mt-20">เพิ่ม/แก้ไขคำถาม</h3>
+        <label>ประเภทคำตอบ</label>
+        <select id="new-question-type">
+          <option value="text">ข้อความสั้น (text)</option>
+          <option value="textarea">ข้อความยาว (textarea)</option>
+          <option value="number">ตัวเลข (number)</option>
+          <option value="date">วันที่ (date)</option>
+          <option value="select">ตัวเลือกแบบ dropdown</option>
+          <option value="radio">ตัวเลือกแบบ radio</option>
+        </select>
 
-      <!-- ฟอร์มแก้ไขแบบปกติ -->
-      <div class="form-surface admin-editor">
-        <div class="field">
-          <label for="new-question-label">ชื่อคำถาม</label>
-          <input type="text" id="new-question-label" placeholder="เช่น ชื่อ-นามสกุล, ตำแหน่งที่สมัคร" />
-        </div>
-
-        <div class="field">
-          <label for="new-question-type">ประเภทคำตอบ</label>
-          <select id="new-question-type">
-            <option value="text">ข้อความสั้น (text)</option>
-            <option value="textarea">ข้อความยาว (textarea)</option>
-            <option value="number">ตัวเลข (number)</option>
-            <option value="date">วันที่ (date)</option>
-            <option value="select">ตัวเลือกแบบ dropdown</option>
-            <option value="radio">ตัวเลือกแบบปุ่มกลม (radio)</option>
-          </select>
+        <!-- ตรงนี้จะโชว์เฉพาะตอนเลือก select / radio -->
+        <div id="option-editor" class="option-box">
+          <label>ตัวเลือก</label>
+          <ul id="option-list"></ul>
+          <div class="inline">
+            <input type="text" id="new-option-text" placeholder="เช่น ผู้จัด, กรรมการ, ผู้เล่น" />
+            <button id="add-option-btn" type="button">เพิ่มตัวเลือก</button>
+          </div>
+          <small>ใช้เฉพาะ dropdown / radio</small>
         </div>
 
-        <div class="field">
-          <label for="new-question-options">ตัวเลือก (ใช้เมื่อเป็น dropdown หรือ radio)</label>
-          <input type="text" id="new-question-options" placeholder="ผู้จัด, กรรมการ, ผู้แข่งขัน" />
-          <small class="help-text">คั่นแต่ละตัวด้วย , เช่น <code>ผู้จัด, กรรมการ, ผู้แข่งขัน</code></small>
-        </div>
-
-        <button id="add-question-btn" class="btn primary wide">บันทึก</button>
+        <button id="add-question-btn" type="button">บันทึก</button>
         <p id="admin-form-msg" class="msg"></p>
       </div>
+
+      <button id="back-to-admin-menu-1">กลับ</button>
     </section>
 
-    <!-- ========== SCREEN 5: ดูผู้สมัคร ========== -->
-    <section id="admin-users-screen" class="screen hidden">
-      <div class="screen-topbar">
-        <div>
-          <h2 class="section-title">ข้อมูลผู้สมัคร</h2>
-          <p class="section-desc">ดูข้อมูลและเวลาที่ผู้ใช้ส่งแบบฟอร์ม</p>
-        </div>
-        <button id="back-to-admin-menu-2" class="btn ghost-inline tiny">
-          <span class="material-icons-round">arrow_back</span> กลับ
-        </button>
-      </div>
-      <div id="admin-users-list" class="admin-list users"></div>
+    <!-- ================== SCREEN: ADMIN USERS ================== -->
+    <section id="admin-users-screen" class="screen">
+      <h2>ข้อมูลผู้สมัคร</h2>
+      <div id="admin-users-list" class="list-box"></div>
       <p id="admin-users-msg" class="msg"></p>
+      <button id="back-to-admin-menu-2">กลับ</button>
     </section>
 
-    <!-- ========== SCREEN 6: จัดการรหัส นศ. ========== -->
-    <section id="admin-ids-screen" class="screen hidden">
-      <div class="screen-topbar">
-        <div>
-          <h2 class="section-title">จัดการรหัสนักศึกษา</h2>
-          <p class="section-desc">เพิ่มหรือลบสิทธิ์การเข้าใช้งานหน้าฟอร์ม</p>
-        </div>
-        <button id="back-to-admin-menu-3" class="btn ghost-inline tiny">
-          <span class="material-icons-round">arrow_back</span> กลับ
-        </button>
-      </div>
-      <div id="admin-ids-list" class="admin-list pretty"></div>
+    <!-- ================== SCREEN: ADMIN IDS ================== -->
+    <section id="admin-ids-screen" class="screen">
+      <h2>จัดการรหัสนักศึกษา</h2>
+      <div id="admin-ids-list" class="list-box"></div>
 
-      <div class="form-surface mt-20">
-        <div class="field">
-          <label for="new-student-id">รหัสนักศึกษาใหม่</label>
-          <input type="text" id="new-student-id" placeholder="เช่น 65306xxxxx" />
-        </div>
-        <button id="add-student-id-btn" class="btn primary wide">เพิ่มรหัส</button>
+      <div class="box">
+        <input type="text" id="new-student-id" placeholder="เพิ่มรหัส นศ." />
+        <button id="add-student-id-btn">เพิ่มรหัส</button>
         <p id="admin-ids-msg" class="msg"></p>
       </div>
+
+      <button id="back-to-admin-menu-3">กลับ</button>
     </section>
   </div>
 
-  <!-- โหลด JS หลัง element ทั้งหมด -->
   <script src="script.js"></script>
 </body>
 </html>
