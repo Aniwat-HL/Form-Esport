@@ -33,7 +33,7 @@
     <!-- ========== SCREEN 1: ใส่รหัสเดียวจบ ========== -->
     <section id="login-screen" class="screen active">
       <h2 class="section-title">เข้าสู่ระบบ</h2>
-      <p class="section-desc">กรอกรหัสนักศึกษาเพื่อเข้าฟอร์มหรือส่วนแอดมิน</p>
+      <p class="section-desc">กรอกรหัสนักศึกษา ถ้าเป็นรหัสแอดมินจะเข้าหน้าแอดมินทันที</p>
 
       <div class="input-group big" id="login-input-group">
         <span class="material-icons-round">badge</span>
@@ -49,7 +49,7 @@
         <span class="material-icons-round">info</span>
         <div>
           <strong>หมายเหตุ</strong>
-          <p>ถ้ารหัสนี้เป็นรหัสแอดมินจะเข้าสู่ “โหมดจัดการ” ทันที</p>
+          <p>แอดมินใช้รหัสพิเศษที่ตั้งในโค้ด ส่วนผู้ใช้ทั่วไปต้องอยู่ใน allowed_students ก่อน</p>
         </div>
       </div>
     </section>
@@ -86,14 +86,14 @@
           <span class="material-icons-round icon-wrap">description</span>
           <div>
             <h3>จัดการฟอร์ม</h3>
-            <p>เพิ่ม/แก้ไข/ลบ คำถาม</p>
+            <p>เพิ่ม / แก้ไข / ลบ คำถาม</p>
           </div>
         </button>
         <button id="admin-view-users-btn" class="card-btn">
           <span class="material-icons-round icon-wrap info">group</span>
           <div>
             <h3>ข้อมูลผู้สมัคร</h3>
-            <p>ดูคำตอบทั้งหมดที่ส่งมา</p>
+            <p>ดูคำตอบทั้งหมด</p>
           </div>
         </button>
         <button id="admin-manage-ids-btn" class="card-btn">
@@ -106,7 +106,7 @@
       </div>
     </section>
 
-    <!-- ========== SCREEN 4: หน้าแก้ไขฟอร์ม ========== -->
+    <!-- ========== SCREEN 4: แก้ไขฟอร์ม ========== -->
     <section id="admin-form-editor-screen" class="screen hidden">
       <div class="screen-topbar">
         <div>
@@ -141,14 +141,14 @@
         </div>
         <div class="input-group">
           <span class="material-icons-round">list</span>
-          <input type="text" id="new-question-options" placeholder="ตัวเลือกคั่นด้วย , เมื่อเป็น select / radio" />
+          <input type="text" id="new-question-options" placeholder="ตัวเลือกคั่นด้วย , (ใช้กับ select / radio)" />
         </div>
         <button id="add-question-btn" class="btn primary wide">บันทึก</button>
         <p id="admin-form-msg" class="msg"></p>
       </div>
     </section>
 
-    <!-- ========== SCREEN 5: หน้าแสดงข้อมูลผู้ใช้ ========== -->
+    <!-- ========== SCREEN 5: ดูผู้สมัคร ========== -->
     <section id="admin-users-screen" class="screen hidden">
       <div class="screen-topbar">
         <div>
@@ -188,6 +188,7 @@
     </section>
   </div>
 
+  <!-- ❗สำคัญ: โหลด JS หลังจากทุก element ถูกสร้างแล้ว -->
   <script src="script.js"></script>
 </body>
 </html>
