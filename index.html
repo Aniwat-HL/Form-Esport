@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>เข้าสู่ระบบกิจกรรม</title>
+  <title>ระบบลงทะเบียนกิจกรรม</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
@@ -10,26 +10,23 @@
   <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
 </head>
-<body class="bg-soft center-page">
-  <div class="auth-shell">
-    <div class="auth-card">
-      <div class="brand-row">
-        <div class="brand-circle">ES</div>
-        <div>
-          <h1 class="title">ระบบลงทะเบียนกิจกรรม</h1>
-          <p class="subtitle">Prince of Songkla University</p>
-        </div>
-      </div>
+<body class="login-bg">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="brand-circle">ES</div>
+      <h1 class="login-title">ระบบลงทะเบียนกิจกรรม</h1>
+      <p class="muted small">PSU Phuket</p>
 
-      <label class="field-label" for="student-id-input">รหัสนักศึกษา / รหัสแอดมิน</label>
+      <label class="field-label mt-1">กรอกรหัสนักศึกษา หรือรหัสแอดมิน</label>
       <input id="student-id-input" class="input" type="text" placeholder="เช่น 6530611018 หรือ 0826940174" />
 
       <button id="login-btn" class="btn primary full mt-1">เข้าสู่ระบบ</button>
 
-      <p class="helper-text mt-2">
-        • ถ้ายังไม่ได้รับอนุญาต → ให้แอดมินเพิ่มชื่อในระบบ
+      <p class="muted tiny mt-1">
+        หากขึ้นว่า “ยังไม่ได้รับอนุญาต” ให้แอดมินเพิ่มใน <code>allowed_students</code>
       </p>
     </div>
+  </div>
 
   <script src="app.js"></script>
 </body>
