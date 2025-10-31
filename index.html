@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>ESport Registration (Form)</title>
+  <title>ESport Registration</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
 
@@ -11,87 +11,124 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
-  <div class="app">
-    <h1>ESport Registration</h1>
+  <div class="bg-grad"></div>
+  <div class="app shell fade-in">
+    <header class="topbar">
+      <h1 class="logo">ESport Registration</h1>
+      <p class="subtitle">ระบบลงทะเบียนการแข่งขัน E-Sport สำหรับนักศึกษา</p>
+    </header>
 
-    <!-- ========== LOGIN ========== -->
-    <section id="login-screen" class="screen active">
+    <!-- LOGIN -->
+    <section id="login-screen" class="screen active card scale-in">
       <h2>เข้าสู่ระบบ</h2>
-      <input type="text" id="universal-id" placeholder="รหัสนักศึกษา หรือรหัสแอดมิน" />
-      <button id="login-btn">เข้าสู่ระบบ</button>
+      <p class="muted">กรอกรหัสนักศึกษา หรือรหัสแอดมิน</p>
+      <input type="text" id="universal-id" placeholder="เช่น 6530611018" />
+      <button id="login-btn" class="btn primary w-100">เข้าสู่ระบบ</button>
       <p id="login-msg" class="msg"></p>
     </section>
 
-    <!-- ========== USER FORM ========== -->
-    <section id="user-form-screen" class="screen">
-      <h2 id="form-title">แบบฟอร์มสมัคร</h2>
-      <form id="dynamic-form"></form>
-      <p id="user-form-msg" class="msg"></p>
-      <button id="user-logout-btn" class="ghost">ออกจากระบบ</button>
+    <!-- USER FORM -->
+    <section id="user-form-screen" class="screen card">
+      <h2>แบบฟอร์มสมัคร</h2>
+      <p class="muted">กรุณากรอกข้อมูลให้ครบถ้วน</p>
+
+      <form id="user-form" class="form-grid">
+        <div class="form-field">
+          <label>ชื่อ - นามสกุล</label>
+          <input type="text" id="f-name" placeholder="เช่น อนิวรรต บุญคงมาก" required />
+        </div>
+
+        <div class="form-field">
+          <label>อีเมล PSU (ระบบสร้างอัตโนมัติ)</label>
+          <input type="email" id="f-email" readonly />
+        </div>
+
+        <div class="form-field">
+          <label>บทบาทที่สมัคร <span class="tiny muted">(จะแสดงจำนวนแบบสด)</span></label>
+          <select id="f-role">
+            <!-- จะถูกเติมจาก Firestore role_limits -->
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label>เกมที่สนใจเข้าร่วม</label>
+          <div class="chips" id="f-games">
+            <label><input type="checkbox" value="Valorant" /> Valorant</label>
+            <label><input type="checkbox" value="ROV" /> ROV</label>
+            <label><input type="checkbox" value="PUBG Mobile" /> PUBG Mobile</label>
+            <label><input type="checkbox" value="FC Online" /> FC Online</label>
+            <label><input type="checkbox" value="อื่นๆ" /> อื่นๆ</label>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label>หมายเหตุ / ความต้องการพิเศษ</label>
+          <textarea id="f-note" rows="3" placeholder="ระบุเพิ่มเติม (ถ้ามี)"></textarea>
+        </div>
+
+        <button type="button" id="submit-form-btn" class="btn primary">ส่งแบบฟอร์ม</button>
+        <p id="user-form-msg" class="msg"></p>
+      </form>
+
+      <button id="user-logout-btn" class="btn ghost mt-2">ออกจากระบบ</button>
     </section>
 
-    <!-- ========== ADMIN MENU ========== -->
-    <section id="admin-menu-screen" class="screen">
+    <!-- USER SUCCESS -->
+    <section id="user-success-screen" class="screen card center">
+      <div class="success-icon">✅</div>
+      <h2>ส่งแบบฟอร์มเรียบร้อย</h2>
+      <p class="muted">ขอบคุณที่ลงทะเบียน เราจะติดต่อกลับทางอีเมล PSU ของคุณ</p>
+      <button id="success-logout-btn" class="btn ghost">กลับไปหน้าเข้าสู่ระบบ</button>
+    </section>
+
+    <!-- ADMIN MENU -->
+    <section id="admin-menu-screen" class="screen card">
       <h2>แดชบอร์ดแอดมิน</h2>
-      <button id="admin-sections-btn">1) จัดการ Sections (หน้าฟอร์ม)</button>
-      <button id="admin-view-users-btn">2) ดูข้อมูลการสมัคร</button>
-      <button id="admin-manage-ids-btn">3) จัดการรหัสนักศึกษา</button>
-      <button id="admin-role-limits-btn">4) จัดการจำนวนบทบาท</button>
-      <button id="admin-logout-btn" class="danger">ออกจากระบบ</button>
-    </section>
-
-    <!-- ========== ADMIN: SECTIONS ========== -->
-    <section id="admin-sections-screen" class="screen">
-      <h2>จัดการ Sections (เหมือน Google Form)</h2>
-
-      <div id="admin-sections-list" class="list-box"></div>
-
-      <h3>แก้ไข / เพิ่ม Section</h3>
-      <div class="box">
-        <input type="text" id="section-id" placeholder="รหัส Section เช่น sec_main" />
-        <input type="text" id="section-title" placeholder="ชื่อ Section ที่จะแสดง" />
-
-        <h4>คำถามใน Section นี้</h4>
-        <div id="questions-editor"></div>
-        <button id="add-question-btn" type="button" class="add-q">➕ เพิ่มคำถาม</button>
-        <p class="muted">* ถ้าเลือกประเภท Dropdown จะมีช่องเพิ่มตัวเลือก (จำกัดจำนวน + ลิงก์ไป Section อื่น)</p>
-
-        <button id="save-section-btn" class="primary">💾 บันทึก Section</button>
-        <p id="admin-form-msg" class="msg"></p>
+      <p class="muted">จัดการผู้ลงทะเบียน, รหัสนักศึกษา และจำนวนบทบาท</p>
+      <div class="admin-btns">
+        <button id="admin-view-users-btn" class="btn primary w-100">📋 ดูข้อมูลผู้ลงทะเบียน</button>
+        <button id="admin-manage-ids-btn" class="btn secondary w-100">🧑‍🎓 จัดการรหัสที่อนุญาต</button>
+        <button id="admin-role-limits-btn" class="btn secondary w-100">📊 จัดการจำนวนบทบาท</button>
       </div>
-
-      <button id="back-to-admin-from-sections" class="ghost">กลับ</button>
+      <button id="admin-logout-btn" class="btn ghost mt-2">ออกจากระบบ</button>
     </section>
 
-    <!-- ========== ADMIN: USERS ========== -->
-    <section id="admin-users-screen" class="screen">
-      <h2>ข้อมูลการสมัคร</h2>
+    <!-- ADMIN: USERS -->
+    <section id="admin-users-screen" class="screen card">
+      <h2>ข้อมูลผู้ลงทะเบียน</h2>
       <div class="search-bar">
         <input type="text" id="user-search-input" placeholder="ค้นหาด้วยรหัสนักศึกษา" />
-        <button id="user-search-btn">ค้นหา</button>
-        <button id="user-search-clear-btn" class="ghost-btn">ล้าง</button>
+        <button id="user-search-btn" class="btn small">ค้นหา</button>
+        <button id="user-search-clear-btn" class="btn ghost small">ล้าง</button>
       </div>
       <div id="admin-users-list" class="list-box"></div>
-      <button id="back-to-admin-from-users" class="ghost">กลับ</button>
+      <button id="back-to-admin-from-users" class="btn ghost mt-2">กลับ</button>
     </section>
 
-    <!-- ========== ADMIN: ALLOWED STUDENT IDs ========== -->
-    <section id="admin-ids-screen" class="screen">
+    <!-- ADMIN: ALLOWED IDS -->
+    <section id="admin-ids-screen" class="screen card">
       <h2>จัดการรหัสนักศึกษา</h2>
       <div id="admin-ids-list" class="list-box"></div>
-      <div class="inline">
+      <div class="inline mt-1">
         <input type="text" id="new-student-id" placeholder="เพิ่มรหัสนักศึกษา" />
-        <button id="add-student-id-btn">เพิ่ม</button>
+        <button id="add-student-id-btn" class="btn small primary">เพิ่ม</button>
       </div>
-      <button id="back-to-admin-from-ids" class="ghost">กลับ</button>
+      <button id="back-to-admin-from-ids" class="btn ghost mt-2">กลับ</button>
     </section>
 
-    <!-- ========== ADMIN: ROLE LIMITS ========== -->
-    <section id="admin-roles-screen" class="screen">
+    <!-- ADMIN: ROLE LIMITS -->
+    <section id="admin-roles-screen" class="screen card">
       <h2>จัดการจำนวนบทบาท</h2>
+      <p class="muted">จำนวนนี้จะไปแสดงในฟอร์มของผู้ใช้แบบสด และใช้เช็กตอนส่งฟอร์ม</p>
       <div id="admin-role-list" class="list-box"></div>
-      <button id="back-to-admin-from-roles" class="ghost">กลับ</button>
+      <div class="inline mt-1">
+        <input type="text" id="new-role-label" placeholder="เพิ่มชื่อบทบาท เช่น กรรมการ" />
+        <input type="number" id="new-role-max" placeholder="จำนวนสูงสุด" />
+        <button id="add-role-btn" class="btn small primary">เพิ่มบทบาท</button>
+      </div>
+      <button id="back-to-admin-from-roles" class="btn ghost mt-2">กลับ</button>
     </section>
+
   </div>
 
   <script src="script.js"></script>
