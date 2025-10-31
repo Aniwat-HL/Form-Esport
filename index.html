@@ -49,7 +49,7 @@
         <span class="material-icons-round">info</span>
         <div>
           <strong>หมายเหตุ</strong>
-          <p>แอดมินใช้รหัสพิเศษที่ตั้งในโค้ด ส่วนผู้ใช้ทั่วไปต้องอยู่ใน allowed_students ก่อน</p>
+          <p>แอดมินใช้รหัสพิเศษที่ตั้งในโค้ด ส่วนผู้ใช้ทั่วไปต้องอยู่ใน <code>allowed_students</code> ก่อน</p>
         </div>
       </div>
     </section>
@@ -106,7 +106,7 @@
       </div>
     </section>
 
-    <!-- ========== SCREEN 4: แก้ไขฟอร์ม ========== -->
+    <!-- ========== SCREEN 4: แก้ไขฟอร์ม (เวอร์ชันไม่บัคลอย label) ========== -->
     <section id="admin-form-editor-screen" class="screen hidden">
       <div class="screen-topbar">
         <div>
@@ -118,17 +118,20 @@
         </button>
       </div>
 
+      <!-- รายการคำถามที่มีอยู่ -->
       <div id="admin-form-list" class="admin-list pretty"></div>
 
-      <h3 id="form-editor-title" class="mt-20">เพิ่มคำถามใหม่</h3>
-      <div class="form-surface">
-        <div class="input-group">
-          <span class="material-icons-round">title</span>
-          <input type="text" id="new-question-label" />
-          <label>ชื่อคำถาม</label>
+      <h3 id="form-editor-title" class="mt-20">เพิ่ม/แก้ไขคำถาม</h3>
+
+      <!-- ฟอร์มแก้ไขแบบปกติ -->
+      <div class="form-surface admin-editor">
+        <div class="field">
+          <label for="new-question-label">ชื่อคำถาม</label>
+          <input type="text" id="new-question-label" placeholder="เช่น ชื่อ-นามสกุล, ตำแหน่งที่สมัคร" />
         </div>
-        <div class="input-group">
-          <span class="material-icons-round">category</span>
+
+        <div class="field">
+          <label for="new-question-type">ประเภทคำตอบ</label>
           <select id="new-question-type">
             <option value="text">ข้อความสั้น (text)</option>
             <option value="textarea">ข้อความยาว (textarea)</option>
@@ -137,12 +140,14 @@
             <option value="select">ตัวเลือกแบบ dropdown</option>
             <option value="radio">ตัวเลือกแบบปุ่มกลม (radio)</option>
           </select>
-          <label>ประเภทคำตอบ</label>
         </div>
-        <div class="input-group">
-          <span class="material-icons-round">list</span>
-          <input type="text" id="new-question-options" placeholder="ตัวเลือกคั่นด้วย , (ใช้กับ select / radio)" />
+
+        <div class="field">
+          <label for="new-question-options">ตัวเลือก (ใช้เมื่อเป็น dropdown หรือ radio)</label>
+          <input type="text" id="new-question-options" placeholder="ผู้จัด, กรรมการ, ผู้แข่งขัน" />
+          <small class="help-text">คั่นแต่ละตัวด้วย , เช่น <code>ผู้จัด, กรรมการ, ผู้แข่งขัน</code></small>
         </div>
+
         <button id="add-question-btn" class="btn primary wide">บันทึก</button>
         <p id="admin-form-msg" class="msg"></p>
       </div>
@@ -177,10 +182,9 @@
       <div id="admin-ids-list" class="admin-list pretty"></div>
 
       <div class="form-surface mt-20">
-        <div class="input-group">
-          <span class="material-icons-round">person_add</span>
-          <input type="text" id="new-student-id" />
-          <label>รหัสนักศึกษาใหม่</label>
+        <div class="field">
+          <label for="new-student-id">รหัสนักศึกษาใหม่</label>
+          <input type="text" id="new-student-id" placeholder="เช่น 65306xxxxx" />
         </div>
         <button id="add-student-id-btn" class="btn primary wide">เพิ่มรหัส</button>
         <p id="admin-ids-msg" class="msg"></p>
@@ -188,7 +192,7 @@
     </section>
   </div>
 
-  <!-- ❗สำคัญ: โหลด JS หลังจากทุก element ถูกสร้างแล้ว -->
+  <!-- โหลด JS หลัง element ทั้งหมด -->
   <script src="script.js"></script>
 </body>
 </html>
