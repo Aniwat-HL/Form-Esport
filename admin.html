@@ -40,13 +40,16 @@
       </div>
 
       <div class="grid-2">
+        <!-- ซ้าย: รายการคำถาม -->
         <div class="card">
           <h3 class="section-title">รายการคำถาม</h3>
           <div id="questions-list" class="vertical-list"></div>
         </div>
 
+        <!-- ขวา: เพิ่มคำถามใหม่ -->
         <div class="card">
           <h3 class="section-title">เพิ่มคำถามใหม่</h3>
+
           <label class="field-label">ชื่อคำถาม</label>
           <input id="new-q-label" class="input" type="text" placeholder="เช่น ชื่อ-นามสกุล" />
 
@@ -54,7 +57,14 @@
           <select id="new-q-type" class="input">
             <option value="text">ข้อความสั้น</option>
             <option value="textarea">ย่อหน้า</option>
+            <option value="select">Dropdown (ให้เลือก)</option>
           </select>
+
+          <!-- เฉพาะ dropdown -->
+          <div id="new-q-options-wrap" class="mt-1" style="display:none;">
+            <label class="field-label">ตัวเลือก (คั่นด้วย , )</label>
+            <input id="new-q-options" class="input" type="text" placeholder="เช่น ชั้นปี 1, ชั้นปี 2, ชั้นปี 3" />
+          </div>
 
           <div class="flex mt-1">
             <label class="check-inline">
@@ -66,6 +76,10 @@
               autoEmail
             </label>
           </div>
+
+          <!-- จำกัดจำนวนคนกรอก -->
+          <label class="field-label mt-1">จำกัดจำนวนคนที่ตอบ (เว้นว่างถ้าไม่จำกัด)</label>
+          <input id="new-q-limit" class="input" type="number" min="1" placeholder="เช่น 50" />
 
           <button id="add-question-btn" class="btn primary full mt-1">เพิ่มคำถาม</button>
         </div>
