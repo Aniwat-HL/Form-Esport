@@ -4,27 +4,24 @@
   <meta charset="UTF-8" />
   <title>ESport Registration</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
+  <link rel="stylesheet" href="style.css" />
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
-  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="app">
     <h1>ESport Registration</h1>
 
-    <!-- ===== LOGIN ===== -->
+    <!-- LOGIN -->
     <section id="login-screen" class="screen active">
       <h2>เข้าสู่ระบบ</h2>
-      <p>ใส่รหัสนักศึกษา ถ้าเป็นแอดมินจะเข้าส่วนแอดมินทันที</p>
-      <input type="text" id="universal-id" placeholder="รหัสนักศึกษา / รหัสแอดมิน" />
+      <input type="text" id="universal-id" placeholder="รหัสนักศึกษา / แอดมิน" />
       <button id="login-btn">เข้าสู่ระบบ</button>
       <p id="login-msg" class="msg"></p>
     </section>
 
-    <!-- ===== USER FORM ===== -->
+    <!-- USER FORM -->
     <section id="user-form-screen" class="screen">
       <h2>แบบฟอร์มสมัคร</h2>
       <form id="dynamic-form"></form>
@@ -32,75 +29,75 @@
       <button id="user-back-btn">ออกจากระบบ</button>
     </section>
 
-    <!-- ===== ADMIN MENU ===== -->
+    <!-- ADMIN MENU -->
     <section id="admin-menu-screen" class="screen">
       <h2>แดชบอร์ดแอดมิน</h2>
       <button id="admin-edit-form-btn">จัดการฟอร์ม</button>
       <button id="admin-view-users-btn">ดูคำตอบผู้ใช้</button>
-      <button id="admin-manage-ids-btn">จัดการรหัส นศ.</button>
-      <!-- ถ้าจะมีหน้าจัดการ role_limits ค่อยเพิ่มปุ่มตรงนี้ -->
+      <button id="admin-manage-ids-btn">จัดการรหัสนักศึกษา</button>
+      <button id="admin-role-limits-btn">จัดการจำนวนในแต่ละบทบาท</button>
       <button id="admin-logout-btn">ออกจากระบบ</button>
     </section>
 
-    <!-- ===== ADMIN FORM EDITOR ===== -->
+    <!-- ADMIN FORM EDITOR -->
     <section id="admin-form-editor-screen" class="screen">
       <h2>จัดการฟอร์ม</h2>
       <div id="admin-form-list" class="list-box"></div>
 
-      <h3 id="form-editor-title">เพิ่มคำถามใหม่</h3>
+      <h3>เพิ่ม/แก้ไขคำถาม</h3>
       <div class="box">
         <label>ชื่อคำถาม</label>
         <input type="text" id="new-question-label" />
 
         <label>ประเภทคำตอบ</label>
         <select id="new-question-type">
-          <option value="text">ข้อความสั้น (text)</option>
-          <option value="textarea">ข้อความยาว (textarea)</option>
-          <option value="number">ตัวเลข (number)</option>
-          <option value="date">วันที่ (date)</option>
-          <option value="select">ตัวเลือกแบบ dropdown</option>
-          <option value="radio">ตัวเลือกแบบ radio</option>
+          <option value="text">ข้อความสั้น</option>
+          <option value="textarea">ข้อความยาว</option>
+          <option value="select">Dropdown</option>
+          <option value="radio">Radio</option>
         </select>
 
-        <!-- ใช้เฉพาะ select / radio -->
+        <!-- เพิ่มตัวเลือก -->
         <div id="option-editor" class="option-box">
           <label>ตัวเลือก</label>
           <ul id="option-list"></ul>
           <div class="inline">
-            <input type="text" id="new-option-text" placeholder="เช่น ผู้จัด, กรรมการ, ผู้เล่น" />
-            <button id="add-option-btn" type="button">เพิ่มตัวเลือก</button>
+            <input type="text" id="new-option-text" placeholder="เช่น กรรมการ" />
+            <input type="number" id="new-option-limit" placeholder="จำกัดจำนวน (เช่น 5)" min="1" />
+            <button id="add-option-btn" type="button">เพิ่ม</button>
           </div>
-          <small>ใช้เฉพาะ dropdown / radio</small>
         </div>
 
-        <button id="add-question-btn" type="button">บันทึก</button>
+        <button id="add-question-btn" type="button">บันทึกคำถาม</button>
         <p id="admin-form-msg" class="msg"></p>
       </div>
 
       <button id="back-to-admin-menu-1">กลับ</button>
     </section>
 
-    <!-- ===== ADMIN USERS ===== -->
+    <!-- ADMIN USERS -->
     <section id="admin-users-screen" class="screen">
       <h2>ข้อมูลผู้สมัคร</h2>
       <div id="admin-users-list" class="list-box"></div>
-      <p id="admin-users-msg" class="msg"></p>
       <button id="back-to-admin-menu-2">กลับ</button>
     </section>
 
-    <!-- ===== ADMIN IDS ===== -->
+    <!-- ADMIN IDS -->
     <section id="admin-ids-screen" class="screen">
       <h2>จัดการรหัสนักศึกษา</h2>
       <div id="admin-ids-list" class="list-box"></div>
-
-      <div class="box">
-        <input type="text" id="new-student-id" placeholder="เพิ่มรหัส นศ." />
-        <button id="add-student-id-btn">เพิ่มรหัส</button>
-        <p id="admin-ids-msg" class="msg"></p>
-      </div>
-
+      <input type="text" id="new-student-id" placeholder="เพิ่มรหัส นศ." />
+      <button id="add-student-id-btn">เพิ่มรหัส</button>
       <button id="back-to-admin-menu-3">กลับ</button>
     </section>
+
+    <!-- ADMIN ROLE LIMITS -->
+    <section id="admin-roles-screen" class="screen">
+      <h2>จัดการจำนวนบทบาท (Role Limits)</h2>
+      <div id="admin-role-list" class="list-box"></div>
+      <button id="back-to-admin-menu-4">กลับ</button>
+    </section>
+
   </div>
 
   <script src="script.js"></script>
