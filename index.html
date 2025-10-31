@@ -27,7 +27,7 @@
       <p id="login-msg" class="msg"></p>
     </section>
 
-    <!-- USER FORM (เรนเดอร์จากฐานข้อมูล) -->
+    <!-- USER FORM (dynamic) -->
     <section id="user-form-screen" class="screen card">
       <h2>แบบฟอร์มสมัคร</h2>
       <p class="muted">กรุณากรอกข้อมูลให้ครบ</p>
@@ -48,7 +48,7 @@
     <section id="admin-menu-screen" class="screen card">
       <h2>แดชบอร์ดแอดมิน</h2>
       <div class="admin-btns">
-        <button id="admin-form-builder-btn" class="btn primary w-100">📝 แก้ไขแบบฟอร์ม</button>
+        <button id="admin-form-builder-btn" class="btn primary w-100">📝 จัดการแบบฟอร์ม</button>
         <button id="admin-view-users-btn" class="btn secondary w-100">📋 ดูข้อมูลผู้สมัคร</button>
         <button id="admin-manage-ids-btn" class="btn secondary w-100">🧑‍🎓 จัดการรหัสนักศึกษา</button>
         <button id="admin-role-limits-btn" class="btn secondary w-100">📊 จัดการจำนวนบทบาท</button>
@@ -58,8 +58,11 @@
 
     <!-- ADMIN: FORM BUILDER -->
     <section id="admin-form-screen" class="screen card">
-      <h2>แก้ไขแบบฟอร์ม</h2>
-      <p class="muted">แอดมินสามารถเพิ่ม/ลบ/แก้ไขคำถามได้ และเลือกประเภทคำตอบได้</p>
+      <div class="flex-between">
+        <h2>จัดการแบบฟอร์ม</h2>
+        <button id="reset-form-btn" class="btn ghost small">รีเซ็ตเป็นค่าเริ่มต้น</button>
+      </div>
+      <p class="muted">เพิ่ม / ลบ / แก้ไข คำถามและตัวเลือกได้ทั้งหมด</p>
       <div id="admin-form-list" class="list-box"></div>
 
       <div class="builder-box">
@@ -70,10 +73,16 @@
           <option value="textarea">ย่อหน้า</option>
           <option value="select">ตัวเลือก (dropdown)</option>
         </select>
+        <label class="inline-check mt-1">
+          <input type="checkbox" id="new-q-autoemail" />
+          ใช้เป็นอีเมล PSU อัตโนมัติ
+        </label>
+        <label class="inline-check mt-1">
+          <input type="checkbox" id="new-q-required" />
+          ต้องกรอก
+        </label>
         <button id="add-question-btn" class="btn small primary mt-1">เพิ่มคำถาม</button>
       </div>
-
-      <p class="tiny muted">* ถ้าประเภทเป็น dropdown จะมีปุ่มเพิ่มตัวเลือก และติ๊ก “จำกัดจำนวน” ได้</p>
 
       <button id="back-to-admin-from-form" class="btn ghost mt-2">กลับ</button>
     </section>
@@ -104,7 +113,7 @@
     <!-- ADMIN: ROLE LIMITS -->
     <section id="admin-roles-screen" class="screen card">
       <h2>จัดการจำนวนบทบาท</h2>
-      <p class="muted">รายการนี้ถูกสร้างอัตโนมัติจาก dropdown ที่ติ๊ก “จำกัดจำนวน”</p>
+      <p class="muted">บทบาทจะถูกเพิ่มอัตโนมัติเมื่อแอดมินติ๊ก “จำกัดจำนวน” ในตัวเลือก</p>
       <div id="admin-role-list" class="list-box"></div>
       <div class="inline mt-1">
         <input type="text" id="new-role-label" placeholder="เพิ่มชื่อบทบาท" />
