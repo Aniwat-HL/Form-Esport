@@ -36,7 +36,7 @@
     <section id="tab-form" class="tab-panel active">
       <div class="page-head">
         <h2>จัดการแบบฟอร์ม</h2>
-        <p class="muted">เพิ่ม / ลบ / เปลี่ยนชนิดคำถาม</p>
+        <p class="muted">เพิ่ม / ลบ / แก้ไข / กำหนดโควต้าต่อคำตอบ</p>
       </div>
 
       <div class="grid-2">
@@ -65,6 +65,7 @@
             <label class="field-label">ตัวเลือกคำตอบ</label>
             <div class="flex">
               <input id="new-q-option-input" class="input" type="text" placeholder="เช่น ชั้นปี 1" />
+              <input id="new-q-option-limit" class="input" type="number" min="1" placeholder="โควต้า" style="max-width:110px;">
               <button id="new-q-option-add" type="button" class="btn primary">เพิ่ม</button>
             </div>
             <ul id="new-q-options-list" class="option-list mt-1"></ul>
@@ -80,9 +81,6 @@
               autoEmail
             </label>
           </div>
-
-          <label class="field-label mt-1">จำกัดจำนวนคนที่ตอบ (เว้นว่างถ้าไม่จำกัด)</label>
-          <input id="new-q-limit" class="input" type="number" min="1" placeholder="เช่น 50" />
 
           <button id="add-question-btn" class="btn primary full mt-1">เพิ่มคำถาม</button>
         </div>
@@ -117,7 +115,7 @@
     <section id="tab-roles" class="tab-panel">
       <div class="page-head">
         <h2>Role Limits</h2>
-        <p class="muted">กำหนดจำนวนที่รับได้ในแต่ละบทบาท</p>
+        <p class="muted">กำหนดจำนวนที่รับได้ในแต่ละบทบาท (ถ้าจะใช้ทีหลัง)</p>
       </div>
       <div class="card">
         <div class="flex">
