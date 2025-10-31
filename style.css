@@ -16,7 +16,7 @@ body {
 .screen.active { display: block; }
 h1 { margin-top: 0; }
 
-input, select, button {
+input, select, button, textarea {
   font-family: inherit;
   padding: 8px;
   border: 1px solid #ccc;
@@ -30,6 +30,7 @@ button {
   border: none;
 }
 button:hover { background: #1d4ed8; }
+
 .list-box {
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -37,6 +38,12 @@ button:hover { background: #1d4ed8; }
   margin-bottom: 10px;
   max-height: 300px;
   overflow-y: auto;
+}
+.box {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 12px;
 }
 .option-box {
   border: 1px dashed #999;
@@ -46,23 +53,24 @@ button:hover { background: #1d4ed8; }
 }
 .inline { display: flex; gap: 6px; }
 .inline input { flex: 1; }
+#option-list { list-style: none; padding-left: 0; }
 #option-list li {
-  list-style: none;
   display: flex;
   justify-content: space-between;
-  padding: 4px 6px;
+  background: #fff;
   border: 1px solid #ddd;
   border-radius: 4px;
+  padding: 4px 6px;
   margin-bottom: 4px;
-  background: #fff;
 }
 .msg { color: red; font-size: 0.8em; }
-.box {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 10px;
-  margin-bottom: 12px;
-}
 .dynamic-field { margin-bottom: 10px; }
-.dynamic-field label { font-weight: bold; display: block; margin-bottom: 4px; }
-.small-btn { background: #ef4444; color: #fff; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer; }
+.dynamic-field label { display: block; font-weight: bold; margin-bottom: 4px; }
+.small-btn {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
