@@ -4,74 +4,113 @@
   <meta charset="UTF-8">
   <title>Admin Panel - ESport Form</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
 </head>
-<body>
-  <aside class="admin-sidebar">
-    <div class="admin-brand">
-      <span class="admin-logo">ES</span>
+<body class="admin-layout bg-soft">
+  <!-- sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-circle small">ES</div>
       <div>
-        <h3>Admin Panel</h3>
+        <p class="brand-name">Admin Panel</p>
         <p id="admin-logged-in-as" class="muted small"></p>
       </div>
     </div>
-    <nav class="admin-nav">
-      <button class="admin-tab-btn active" data-tab="form">📝 แบบฟอร์ม</button>
-      <button class="admin-tab-btn" data-tab="users">👥 ผู้สมัคร</button>
-      <button class="admin-tab-btn" data-tab="ids">✅ รหัสอนุญาต</button>
-      <button class="admin-tab-btn" data-tab="roles">📦 Role Limits</button>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-tab="tab-form">📝 แบบฟอร์ม</button>
+      <button class="nav-item" data-tab="tab-users">👥 ผู้สมัคร</button>
+      <button class="nav-item" data-tab="tab-ids">✅ รหัสอนุญาต</button>
+      <button class="nav-item" data-tab="tab-roles">📦 Role Limits</button>
     </nav>
-    <div class="admin-bottom">
+    <div class="sidebar-footer">
       <button id="logout-btn-admin" class="btn ghost full">ออกจากระบบ</button>
     </div>
   </aside>
 
-  <main class="admin-main">
-    <div id="tab-form" class="admin-tab active">
-      <h2>จัดการแบบฟอร์ม</h2>
-      <div id="questions-list" class="list-pad"></div>
-      <div class="card">
-        <label>ชื่อคำถาม</label>
-        <input id="new-q-label" type="text" placeholder="เช่น ชื่อ-นามสกุล">
-        <label>ประเภท</label>
-        <select id="new-q-type">
-          <option value="text">ข้อความสั้น</option>
-          <option value="textarea">ย่อหน้า</option>
-        </select>
-        <div class="row-between mt-1">
-          <label><input id="new-q-required" type="checkbox"> ต้องกรอก</label>
-          <label><input id="new-q-autoemail" type="checkbox"> autoEmail</label>
+  <!-- main area -->
+  <main class="content">
+    <!-- TAB: FORM -->
+    <section id="tab-form" class="tab-panel active">
+      <div class="page-head">
+        <h2>จัดการแบบฟอร์ม</h2>
+        <p class="muted">เพิ่ม / ลบ / เปลี่ยนชนิดคำถาม</p>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3 class="section-title">รายการคำถาม</h3>
+          <div id="questions-list" class="vertical-list"></div>
         </div>
-        <button id="add-question-btn" class="btn primary full mt-1">เพิ่มคำถาม</button>
-      </div>
-    </div>
 
-    <div id="tab-users" class="admin-tab">
-      <h2>รายการผู้สมัคร</h2>
-      <div id="registrations-list" class="list-grid"></div>
-    </div>
+        <div class="card">
+          <h3 class="section-title">เพิ่มคำถามใหม่</h3>
+          <label class="field-label">ชื่อคำถาม</label>
+          <input id="new-q-label" class="input" type="text" placeholder="เช่น ชื่อ-นามสกุล" />
 
-    <div id="tab-ids" class="admin-tab">
-      <h2>รหัสที่อนุญาต</h2>
-      <div class="card mb-1">
-        <input id="new-allowed-id" type="text" placeholder="กรอกรหัสนักศึกษา">
-        <button id="add-allowed-id-btn" class="btn primary">เพิ่ม</button>
-      </div>
-      <div id="allowed-list" class="list-pad"></div>
-    </div>
+          <label class="field-label mt-1">ประเภท</label>
+          <select id="new-q-type" class="input">
+            <option value="text">ข้อความสั้น</option>
+            <option value="textarea">ย่อหน้า</option>
+          </select>
 
-    <div id="tab-roles" class="admin-tab">
-      <h2>Role Limits</h2>
-      <div class="card mb-1">
-        <input id="new-role-label" type="text" placeholder="เช่น ผู้จัดงาน">
-        <input id="new-role-max" type="number" placeholder="จำนวนสูงสุด">
-        <button id="add-role-btn" class="btn primary">เพิ่ม</button>
+          <div class="flex mt-1">
+            <label class="check-inline">
+              <input id="new-q-required" type="checkbox" />
+              ต้องกรอก
+            </label>
+            <label class="check-inline">
+              <input id="new-q-autoemail" type="checkbox" />
+              autoEmail
+            </label>
+          </div>
+
+          <button id="add-question-btn" class="btn primary full mt-1">เพิ่มคำถาม</button>
+        </div>
       </div>
-      <div id="roles-list" class="list-pad"></div>
-    </div>
+    </section>
+
+    <!-- TAB: USERS -->
+    <section id="tab-users" class="tab-panel">
+      <div class="page-head">
+        <h2>รายการผู้สมัคร</h2>
+        <p class="muted">ดูข้อมูลที่นักศึกษากรอกเข้ามา</p>
+      </div>
+      <div id="registrations-list" class="grid-list"></div>
+    </section>
+
+    <!-- TAB: IDS -->
+    <section id="tab-ids" class="tab-panel">
+      <div class="page-head">
+        <h2>รหัสที่อนุญาต</h2>
+        <p class="muted">เฉพาะรหัสที่ระบุไว้เท่านั้นที่เข้าสู่ระบบแบบนักศึกษาได้</p>
+      </div>
+      <div class="card">
+        <div class="flex">
+          <input id="new-allowed-id" class="input" type="text" placeholder="ใส่รหัสนักศึกษา" />
+          <button id="add-allowed-id-btn" class="btn primary">เพิ่ม</button>
+        </div>
+      </div>
+      <div id="allowed-list" class="vertical-list mt-1"></div>
+    </section>
+
+    <!-- TAB: ROLES -->
+    <section id="tab-roles" class="tab-panel">
+      <div class="page-head">
+        <h2>Role Limits</h2>
+        <p class="muted">กำหนดจำนวนที่รับได้ในแต่ละบทบาท</p>
+      </div>
+      <div class="card">
+        <div class="flex">
+          <input id="new-role-label" class="input" type="text" placeholder="ชื่อบทบาท" />
+          <input id="new-role-max" class="input" type="number" placeholder="จำนวนสูงสุด" />
+          <button id="add-role-btn" class="btn primary">เพิ่ม</button>
+        </div>
+      </div>
+      <div id="roles-list" class="vertical-list mt-1"></div>
+    </section>
   </main>
 
   <script src="app.js"></script>
