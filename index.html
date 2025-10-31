@@ -14,7 +14,7 @@
   <div class="app">
     <h1>ESport Registration</h1>
 
-    <!-- LOGIN -->
+    <!-- ========== LOGIN ========== -->
     <section id="login-screen" class="screen active">
       <h2>เข้าสู่ระบบ</h2>
       <input type="text" id="universal-id" placeholder="รหัสนักศึกษา หรือรหัสแอดมิน" />
@@ -22,7 +22,7 @@
       <p id="login-msg" class="msg"></p>
     </section>
 
-    <!-- USER FORM -->
+    <!-- ========== USER FORM ========== -->
     <section id="user-form-screen" class="screen">
       <h2 id="form-title">แบบฟอร์มสมัคร</h2>
       <form id="dynamic-form"></form>
@@ -30,7 +30,7 @@
       <button id="user-logout-btn" class="ghost">ออกจากระบบ</button>
     </section>
 
-    <!-- ADMIN MENU -->
+    <!-- ========== ADMIN MENU ========== -->
     <section id="admin-menu-screen" class="screen">
       <h2>แดชบอร์ดแอดมิน</h2>
       <button id="admin-sections-btn">1) จัดการ Sections (หน้าฟอร์ม)</button>
@@ -40,7 +40,7 @@
       <button id="admin-logout-btn" class="danger">ออกจากระบบ</button>
     </section>
 
-    <!-- ADMIN: SECTIONS -->
+    <!-- ========== ADMIN: SECTIONS ========== -->
     <section id="admin-sections-screen" class="screen">
       <h2>จัดการ Sections (เหมือน Google Form)</h2>
 
@@ -63,7 +63,7 @@
       <button id="back-to-admin-from-sections" class="ghost">กลับ</button>
     </section>
 
-    <!-- ADMIN: USERS -->
+    <!-- ========== ADMIN: USERS ========== -->
     <section id="admin-users-screen" class="screen">
       <h2>ข้อมูลการสมัคร</h2>
       <div class="search-bar">
@@ -75,7 +75,7 @@
       <button id="back-to-admin-from-users" class="ghost">กลับ</button>
     </section>
 
-    <!-- ADMIN: ALLOWED STUDENT IDs -->
+    <!-- ========== ADMIN: ALLOWED STUDENT IDs ========== -->
     <section id="admin-ids-screen" class="screen">
       <h2>จัดการรหัสนักศึกษา</h2>
       <div id="admin-ids-list" class="list-box"></div>
@@ -86,13 +86,12 @@
       <button id="back-to-admin-from-ids" class="ghost">กลับ</button>
     </section>
 
-    <!-- ADMIN: ROLE LIMITS -->
+    <!-- ========== ADMIN: ROLE LIMITS ========== -->
     <section id="admin-roles-screen" class="screen">
       <h2>จัดการจำนวนบทบาท</h2>
       <div id="admin-role-list" class="list-box"></div>
       <button id="back-to-admin-from-roles" class="ghost">กลับ</button>
     </section>
-
   </div>
 
   <script src="script.js"></script>
