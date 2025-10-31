@@ -16,7 +16,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const ADMIN_CODE = "0826940174";
   let currentStudent = null;
   let editingQuestionId = null;
-  let tempOptions = [];  // [{label, limit}]
+  let tempOptions = [];       // [{label, limit}]
+  let allRegistrationsCache = [];  // สำหรับหน้าแอดมินค้นหา
+  let adminQuestionsCache = {};    // เก็บ label ของคำถามไว้ใช้ตอนแสดง
 
   // ===== 3. DOM =====
   const screens = {};
@@ -53,6 +55,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const adminFormMsg = document.getElementById("admin-form-msg");
 
   const adminUsersList = document.getElementById("admin-users-list");
+  const userSearchInput = document.getElementById("user-search-input");
+  const userSearchBtn = document.getElementById("user-search-btn");
+  const userSearchClearBtn = document.getElementById("user-search-clear-btn");
 
   const adminIdsList = document.getElementById("admin-ids-list");
   const newStudentIdInput = document.getElementById("new-student-id");
@@ -66,8 +71,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ===== helper: build email =====
   function buildPsuEmailFromStudentId(studentId) {
-    if (!studentId) return "";
+    if (!studentStudentIdIsValid(studentId)) return "";
     return `s${studentId}@phuket.psu.ac.th`;
+  }
+  function studentStudentIdIsValid(sid) {
+    return !!sid; // จะเพิ่มเงื่อนไขก็ได้ เช่น /^\d{10}$/ ...
   }
 
   // ===== 4. LOGIN =====
@@ -116,11 +124,12 @@ document.addEventListener("DOMContentLoaded", () => {
       label.textContent = q.label;
       wrap.appendChild(label);
 
-      // 1) auto email แบบยืดหยุ่น
+      // ✅ อีเมล auto (แค่มีคำว่า "อีเมล")
       const normalized = (q.label || "").trim();
       const isEmailQuestion =
-        normalized === "อีเมล (ใช้อีเมลของมหาวิทยาลัยเท่านั้น)" ||
-        (normalized.includes("อีเมล") && normalized.includes("มหาวิทยาลัย"));
+        normalized === "อีเมล" ||
+        normalized.toLowerCase().includes("อีเมล") ||
+        normalized.toLowerCase().includes("email");
 
       if (isEmailQuestion) {
         const inp = document.createElement("input");
@@ -134,7 +143,7 @@ document.addEventListener("DOMContentLoaded", () => {
         continue;
       }
 
-      // 2) dropdown (มีจำนวนจำกัด)
+      // dropdown จำกัดจำนวน
       if (q.type === "select") {
         const sel = document.createElement("select");
         sel.name = q.id;
@@ -148,7 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
           if (rl.exists) {
             const { current = 0, max = 0 } = rl.data();
             o.textContent = `${optLabel} (${current}/${max})`;
-            if (current >= max) o.disabled = true;
+            if (max && current >= max) o.disabled = true;
           } else {
             o.textContent = optLabel;
           }
@@ -188,7 +197,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // เก็บคำตอบ
     const answers = {};
     for (const q of questions) {
       const el = dynamicForm.querySelector(`[name="${q.id}"]`);
@@ -196,7 +204,7 @@ document.addEventListener("DOMContentLoaded", () => {
       answers[q.id] = typeof val === "string" ? val.trim() : val;
     }
 
-    // ตรวจว่ามีคำตอบที่ไปชน role_limits ไหม
+    // เช็กว่าเลือก role ที่จำกัดไหม
     let roleToUpdate = null;
     for (const q of questions) {
       const rawVal = answers[q.id];
@@ -216,14 +224,14 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // บันทึกคำตอบ
+    // บันทึกลง registrations
     await db.collection("registrations").add({
       studentId: currentStudent,
       answers,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
 
-    // อัปเดตจำนวน
+    // อัปเดตตัวนับบทบาท
     if (roleToUpdate) {
       await roleToUpdate.ref.update({
         current: (roleToUpdate.current || 0) + 1,
@@ -321,7 +329,7 @@ document.addEventListener("DOMContentLoaded", () => {
       safeMsg(adminFormMsg, "เพิ่มคำถามแล้ว ✅");
     }
 
-    // สร้าง role_limits สำหรับตัวเลือกที่มี limit
+    // สร้าง role_limits จากตัวเลือกที่มี limit
     for (const o of tempOptions) {
       const optLabel = (o.label || "").trim();
       if (o.limit) {
@@ -336,7 +344,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // reset
     editingQuestionId = null;
     newQuestionLabel.value = "";
     newQuestionType.value = "text";
@@ -399,35 +406,90 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ===== 9. ADMIN: view users =====
+  // ===== 9. ADMIN: view users (with search) =====
   async function loadAdminUsers() {
     adminUsersList.innerHTML = "กำลังโหลด...";
-    const qSnap = await db.collection("form_questions").orderBy("order").get();
-    const qMap = {};
-    qSnap.forEach((d) => (qMap[d.id] = d.data()));
 
+    // โหลดคำถามไว้แปลง id -> label
+    const qSnap = await db.collection("form_questions").orderBy("order").get();
+    adminQuestionsCache = {};
+    qSnap.forEach((d) => (adminQuestionsCache[d.id] = d.data()));
+
+    // โหลดผู้สมัครทั้งหมด
     const snap = await db.collection("registrations").orderBy("createdAt", "desc").get();
-    if (snap.empty) {
-      adminUsersList.innerHTML = "<p>ยังไม่มีข้อมูล</p>";
+    allRegistrationsCache = snap.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+    }));
+
+    renderAdminUsers(allRegistrationsCache);
+
+    // bind search
+    if (userSearchBtn) {
+      userSearchBtn.onclick = () => {
+        const q = (userSearchInput.value || "").trim();
+        if (!q) {
+          renderAdminUsers(allRegistrationsCache);
+          return;
+        }
+        const filtered = allRegistrationsCache.filter((item) =>
+          (item.studentId || "").toString().includes(q)
+        );
+        renderAdminUsers(filtered);
+      };
+    }
+
+    if (userSearchClearBtn) {
+      userSearchClearBtn.onclick = () => {
+        userSearchInput.value = "";
+        renderAdminUsers(allRegistrationsCache);
+      };
+    }
+
+    if (userSearchInput) {
+      userSearchInput.onkeydown = (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          userSearchBtn?.click();
+        }
+      };
+    }
+  }
+
+  function renderAdminUsers(list) {
+    const box = document.getElementById("admin-users-list");
+    if (!box) return;
+
+    if (!list || list.length === 0) {
+      box.innerHTML = "<p>ไม่พบข้อมูล</p>";
       return;
     }
 
-    adminUsersList.innerHTML = snap.docs.map((d) => {
-      const data = d.data();
-      const ans = data.answers || {};
-      const ansHtml = Object.keys(ans)
-        .map((qid) => `<div><strong>${qMap[qid]?.label || qid}:</strong> ${ans[qid]}</div>`)
-        .join("");
-      return `
-        <div class="box">
-          <div><strong>รหัส:</strong> ${data.studentId}</div>
-          <div style="font-size:12px;color:#666;">
-            ${data.createdAt ? data.createdAt.toDate().toLocaleString("th-TH") : ""}
+    box.innerHTML = list
+      .map((item) => {
+        const answers = item.answers || {};
+        const answersHtml = Object.keys(answers)
+          .map((qid) => {
+            const qLabel = adminQuestionsCache[qid]?.label || qid;
+            return `<div class="admin-user-answer"><strong>${qLabel}:</strong> ${answers[qid]}</div>`;
+          })
+          .join("");
+
+        const timeStr = item.createdAt
+          ? item.createdAt.toDate().toLocaleString("th-TH")
+          : "";
+
+        return `
+          <div class="admin-user-card">
+            <div class="admin-user-header">
+              <span>รหัส: ${item.studentId || "-"}</span>
+              <span class="admin-user-time">${timeStr}</span>
+            </div>
+            ${answersHtml}
           </div>
-          ${ansHtml}
-        </div>
-      `;
-    }).join("");
+        `;
+      })
+      .join("");
   }
 
   // ===== 10. ADMIN: allowed_students =====
@@ -439,14 +501,16 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    adminIdsList.innerHTML = snap.docs.map((d) => {
-      return `
-        <div class="box">
-          ${d.id}
-          <button class="small-btn" data-del="${d.id}">ลบ</button>
-        </div>
-      `;
-    }).join("");
+    adminIdsList.innerHTML = snap.docs
+      .map((d) => {
+        return `
+          <div class="box">
+            ${d.id}
+            <button class="small-btn" data-del="${d.id}">ลบ</button>
+          </div>
+        `;
+      })
+      .join("");
 
     adminIdsList.querySelectorAll("[data-del]").forEach((btn) => {
       btn.addEventListener("click", async (e) => {
@@ -476,21 +540,23 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    adminRoleList.innerHTML = snap.docs.map((d) => {
-      const x = d.data();
-      return `
-        <div class="box">
-          <strong>${x.label}</strong>
-          <div>ปัจจุบัน: ${x.current || 0}/${x.max || 0}</div>
-          <div class="inline">
-            <input type="number" value="${x.current || 0}" data-cur="${d.id}" />
-            <input type="number" value="${x.max || 0}" data-max="${d.id}" />
-            <button class="update" data-id="${d.id}">อัปเดต</button>
-            <button class="small-btn" data-del="${d.id}">ลบ</button>
+    adminRoleList.innerHTML = snap.docs
+      .map((d) => {
+        const x = d.data();
+        return `
+          <div class="box">
+            <strong>${x.label}</strong>
+            <div>ปัจจุบัน: ${x.current || 0}/${x.max || 0}</div>
+            <div class="inline">
+              <input type="number" value="${x.current || 0}" data-cur="${d.id}" />
+              <input type="number" value="${x.max || 0}" data-max="${d.id}" />
+              <button class="update" data-id="${d.id}">อัปเดต</button>
+              <button class="small-btn" data-del="${d.id}">ลบ</button>
+            </div>
           </div>
-        </div>
-      `;
-    }).join("");
+        `;
+      })
+      .join("");
 
     // update
     adminRoleList.querySelectorAll(".update").forEach((btn) => {
