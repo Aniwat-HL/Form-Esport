@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
-  console.log('Firebase connected');
+  console.log('Firebase connected!');
 
   // ===== 2. Const & elements =====
   const ADMIN_CODE = '0826940174';
@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const adminFormEditorScreen = document.getElementById('admin-form-editor-screen');
   const adminUsersScreen = document.getElementById('admin-users-screen');
 
+  // buttons (อันนี้บางอันอาจไม่มี → ต้องเช็กก่อน)
   const goAdminLoginBtn = document.getElementById('go-admin-login');
   const backToUserBtn = document.getElementById('back-to-user');
 
@@ -61,43 +62,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // state
   let currentStudentId = null;
-  let currentQuestions = [];  // จะเก็บ schema ของฟอร์ม
+  let currentQuestions = [];
 
-  // ===== 3. Helper for show/hide =====
-  function show(el) { el.classList.remove('hidden'); }
-  function hide(el) { el.classList.add('hidden'); }
+  // helpers
+  const show = el => el && el.classList.remove('hidden');
+  const hide = el => el && el.classList.add('hidden');
 
-  // ===== 4. USER FLOW =====
+  // =========================
+  // 4. USER FLOW
+  // =========================
+  if (userLoginBtn) {
+    userLoginBtn.addEventListener('click', async () => {
+      const sid = (userLoginInput.value || '').trim();
+      if (!sid) {
+        userLoginMsg.textContent = 'กรุณากรอกรหัสนักศึกษา';
+        return;
+      }
+      currentStudentId = sid;
+      userLoginMsg.textContent = '';
 
-  // ผู้ใช้ login ด้วยรหัส นศ.
-  userLoginBtn.addEventListener('click', async () => {
-    const sid = (userLoginInput.value || '').trim();
-    if (!sid) {
-      userLoginMsg.textContent = 'กรุณากรอกรหัสนักศึกษา';
-      return;
-    }
-    currentStudentId = sid;
-    userLoginMsg.textContent = '';
+      hide(userLoginScreen);
+      show(userFormScreen);
 
-    // ไปหน้าแบบฟอร์ม
-    hide(userLoginScreen);
-    show(userFormScreen);
+      await loadFormForUser();
+    });
+  }
 
-    // โหลดฟอร์มจาก Firestore
-    await loadFormForUser();
-  });
+  if (userLogoutBtn) {
+    userLogoutBtn.addEventListener('click', () => {
+      currentStudentId = null;
+      if (userLoginInput) userLoginInput.value = '';
+      hide(userFormScreen);
+      show(userLoginScreen);
+    });
+  }
 
-  // ผู้ใช้กดออก
-  userLogoutBtn.addEventListener('click', () => {
-    currentStudentId = null;
-    userLoginInput.value = '';
-    hide(userFormScreen);
-    show(userLoginScreen);
-  });
-
-  // โหลดฟอร์มจาก Firestore แล้วสร้าง input
   async function loadFormForUser() {
+    if (!dynamicForm) return;
     dynamicForm.innerHTML = 'กำลังโหลดแบบฟอร์ม...';
+
     const snap = await db.collection('form_questions').orderBy('order').get();
     currentQuestions = [];
     const frag = document.createDocumentFragment();
@@ -125,7 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         field.appendChild(select);
       } else {
-        // default = text
         const input = document.createElement('input');
         input.type = 'text';
         input.name = q.id;
@@ -138,28 +140,27 @@ document.addEventListener('DOMContentLoaded', () => {
     dynamicForm.innerHTML = '';
     dynamicForm.appendChild(frag);
 
-    // เพิ่มปุ่ม submit ถ้ายังไม่มี
-    if (!document.getElementById('user-submit-form')) {
-      const submitBtn = document.createElement('button');
+    // ปุ่ม submit
+    let submitBtn = document.getElementById('user-submit-form');
+    if (!submitBtn) {
+      submitBtn = document.createElement('button');
       submitBtn.id = 'user-submit-form';
       submitBtn.textContent = 'ส่งแบบฟอร์ม';
       submitBtn.className = 'primary';
       dynamicForm.appendChild(submitBtn);
-
-      submitBtn.addEventListener('click', submitUserForm);
     }
+
+    submitBtn.onclick = submitUserForm;
   }
 
-  // ผู้ใช้กด submit แบบฟอร์ม
   async function submitUserForm(e) {
     e.preventDefault?.();
 
     if (!currentStudentId) {
-      userFormMsg.textContent = 'กรุณาเข้าสู่ระบบก่อน';
+      if (userFormMsg) userFormMsg.textContent = 'กรุณาเข้าสู่ระบบก่อน';
       return;
     }
 
-    // รวบรวมคำตอบ
     const answers = {};
     currentQuestions.forEach(q => {
       const el = dynamicForm.querySelector(`[name="${q.id}"]`);
@@ -172,78 +173,96 @@ document.addEventListener('DOMContentLoaded', () => {
         answers,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      userFormMsg.textContent = 'ส่งแบบฟอร์มเรียบร้อย ✅';
-      // ล้างฟอร์ม (ถ้าต้องการ)
-      // dynamicForm.reset(); // ใช้ไม่ได้กับสร้างแบบ dynamic ทั้งหมด
+
+      if (userFormMsg) userFormMsg.textContent = 'ส่งแบบฟอร์มเรียบร้อย ✅';
     } catch (err) {
       console.error(err);
-      userFormMsg.textContent = 'ส่งแบบฟอร์มไม่สำเร็จ ❌';
+      if (userFormMsg) userFormMsg.textContent = 'ส่งแบบฟอร์มไม่สำเร็จ ❌';
     }
   }
 
-  // ===== 5. ADMIN FLOW =====
+  // =========================
+  // 5. ADMIN FLOW
+  // =========================
 
-  // ไปหน้า login แอดมิน
-  goAdminLoginBtn.addEventListener('click', () => {
-    hide(userLoginScreen);
-    show(adminLoginScreen);
-  });
+  // ไปหน้าแอดมินจากหน้า user
+  if (goAdminLoginBtn) {
+    goAdminLoginBtn.addEventListener('click', () => {
+      hide(userLoginScreen);
+      show(adminLoginScreen);
+    });
+  }
 
-  // กลับไป user
-  backToUserBtn.addEventListener('click', () => {
-    hide(adminLoginScreen);
-    show(userLoginScreen);
-  });
-
-  // แอดมิน login
-  adminLoginBtn.addEventListener('click', () => {
-    const code = (adminCodeInput.value || '').trim();
-    if (code === ADMIN_CODE) {
-      adminLoginMsg.textContent = '';
+  // กลับไป user จากหน้าแอดมิน login
+  if (backToUserBtn) {
+    backToUserBtn.addEventListener('click', () => {
       hide(adminLoginScreen);
-      show(adminMenuScreen);
-    } else {
-      adminLoginMsg.textContent = 'รหัสไม่ถูกต้อง';
-    }
-  });
+      show(userLoginScreen);
+    });
+  }
+
+  // แอดมินกด login
+  if (adminLoginBtn) {
+    adminLoginBtn.addEventListener('click', () => {
+      const code = (adminCodeInput.value || '').trim();
+      if (code === ADMIN_CODE) {
+        if (adminLoginMsg) adminLoginMsg.textContent = '';
+        hide(adminLoginScreen);
+        show(adminMenuScreen);
+      } else {
+        if (adminLoginMsg) adminLoginMsg.textContent = 'รหัสไม่ถูกต้อง';
+      }
+    });
+  }
 
   // ออกจากระบบแอดมิน
-  adminLogoutBtn.addEventListener('click', () => {
-    adminCodeInput.value = '';
-    hide(adminMenuScreen);
-    hide(adminFormEditorScreen);
-    hide(adminUsersScreen);
-    show(userLoginScreen);
-  });
+  if (adminLogoutBtn) {
+    adminLogoutBtn.addEventListener('click', () => {
+      if (adminCodeInput) adminCodeInput.value = '';
+      hide(adminMenuScreen);
+      hide(adminFormEditorScreen);
+      hide(adminUsersScreen);
+      show(userLoginScreen);
+    });
+  }
 
   // ไปหน้าแก้ไขฟอร์ม
-  adminEditFormBtn.addEventListener('click', async () => {
-    hide(adminMenuScreen);
-    show(adminFormEditorScreen);
-    await loadAdminFormList();
-  });
+  if (adminEditFormBtn) {
+    adminEditFormBtn.addEventListener('click', async () => {
+      hide(adminMenuScreen);
+      show(adminFormEditorScreen);
+      await loadAdminFormList();
+    });
+  }
 
-  // ไปหน้าแสดงผู้ใช้
-  adminViewUsersBtn.addEventListener('click', async () => {
-    hide(adminMenuScreen);
-    show(adminUsersScreen);
-    await loadAdminUsers();
-  });
+  // ไปหน้าดูผู้ใช้
+  if (adminViewUsersBtn) {
+    adminViewUsersBtn.addEventListener('click', async () => {
+      hide(adminMenuScreen);
+      show(adminUsersScreen);
+      await loadAdminUsers();
+    });
+  }
 
   // ย้อนกลับจากหน้าแก้ฟอร์ม
-  backToAdminMenu1.addEventListener('click', () => {
-    hide(adminFormEditorScreen);
-    show(adminMenuScreen);
-  });
+  if (backToAdminMenu1) {
+    backToAdminMenu1.addEventListener('click', () => {
+      hide(adminFormEditorScreen);
+      show(adminMenuScreen);
+    });
+  }
 
   // ย้อนกลับจากหน้าผู้ใช้
-  backToAdminMenu2.addEventListener('click', () => {
-    hide(adminUsersScreen);
-    show(adminMenuScreen);
-  });
+  if (backToAdminMenu2) {
+    backToAdminMenu2.addEventListener('click', () => {
+      hide(adminUsersScreen);
+      show(adminMenuScreen);
+    });
+  }
 
-  // โหลดรายการฟอร์มให้แอดมินดู
+  // โหลดรายการคำถามให้แอดมิน
   async function loadAdminFormList() {
+    if (!adminFormList) return;
     adminFormList.innerHTML = 'กำลังโหลด...';
     const snap = await db.collection('form_questions').orderBy('order').get();
     const items = [];
@@ -253,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="admin-item">
           <strong>${d.label || '(ไม่มีชื่อ)'}</strong>
           <span class="badge">${d.type}</span>
-          ${d.options && d.options.length ? `<div>options: ${d.options.join(', ')}</div>` : ''}
+          ${d.options && d.options.length ? `<div>ตัวเลือก: ${d.options.join(', ')}</div>` : ''}
         </div>
       `);
     });
@@ -261,58 +280,61 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // แอดมินเพิ่มคำถามใหม่
-  addQuestionBtn.addEventListener('click', async () => {
-    const label = (newQuestionLabel.value || '').trim();
-    const type = newQuestionType.value;
-    const optionsRaw = (newQuestionOptions.value || '').trim();
+  if (addQuestionBtn) {
+    addQuestionBtn.addEventListener('click', async () => {
+      const label = (newQuestionLabel.value || '').trim();
+      const type = newQuestionType.value;
+      const optionsRaw = (newQuestionOptions.value || '').trim();
 
-    if (!label) {
-      adminFormMsg.textContent = 'กรุณาใส่ชื่อคำถาม';
-      return;
-    }
+      if (!label) {
+        if (adminFormMsg) adminFormMsg.textContent = 'กรุณาใส่ชื่อคำถาม';
+        return;
+      }
 
-    // หาลำดับล่าสุด
-    const snap = await db.collection('form_questions').orderBy('order', 'desc').limit(1).get();
-    let nextOrder = 1;
-    snap.forEach(doc => {
-      const d = doc.data();
-      nextOrder = (d.order || 0) + 1;
+      // หา order ล่าสุด
+      const last = await db.collection('form_questions').orderBy('order', 'desc').limit(1).get();
+      let nextOrder = 1;
+      last.forEach(doc => {
+        const d = doc.data();
+        nextOrder = (d.order || 0) + 1;
+      });
+
+      const data = {
+        label,
+        type,
+        order: nextOrder
+      };
+
+      if (type === 'select' && optionsRaw) {
+        data.options = optionsRaw.split(',').map(s => s.trim()).filter(Boolean);
+      }
+
+      await db.collection('form_questions').add(data);
+
+      if (adminFormMsg) adminFormMsg.textContent = 'เพิ่มคำถามสำเร็จ ✅';
+
+      newQuestionLabel.value = '';
+      newQuestionOptions.value = '';
+
+      await loadAdminFormList();
     });
-
-    const docData = {
-      label,
-      type,
-      order: nextOrder
-    };
-
-    if (type === 'select' && optionsRaw) {
-      docData.options = optionsRaw.split(',').map(s => s.trim()).filter(Boolean);
-    }
-
-    await db.collection('form_questions').add(docData);
-
-    adminFormMsg.textContent = 'เพิ่มคำถามสำเร็จ ✅';
-    newQuestionLabel.value = '';
-    newQuestionOptions.value = '';
-
-    await loadAdminFormList();
-  });
+  }
 
   // โหลดผู้ใช้ทั้งหมด
   async function loadAdminUsers() {
+    if (!adminUsersList) return;
     adminUsersList.innerHTML = 'กำลังโหลด...';
+
+    // ดึงคำถามมาก่อนเพื่อ map id -> label
     const qSnap = await db.collection('form_questions').orderBy('order').get();
     const questionsMap = {};
     qSnap.forEach(doc => {
       questionsMap[doc.id] = doc.data();
     });
 
-    const snap = await db.collection('registrations')
-      .orderBy('createdAt', 'desc')
-      .get();
-
+    const snap = await db.collection('registrations').orderBy('createdAt', 'desc').get();
     if (snap.empty) {
-      adminUsersList.innerHTML = '<p>ยังไม่มีผู้ใช้งานส่งฟอร์ม</p>';
+      adminUsersList.innerHTML = '<p>ยังไม่มีคนส่งแบบฟอร์ม</p>';
       return;
     }
 
@@ -323,7 +345,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const studentId = d.studentId || '-';
       const time = d.createdAt ? d.createdAt.toDate().toLocaleString('th-TH') : '';
 
-      // แปลง answers ให้เป็นข้อความอ่านง่าย
       const ansLines = Object.keys(ans).map(qid => {
         const q = questionsMap[qid];
         const label = q ? q.label : qid;
