@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // ===== 1. Firebase init =====
+  // 1) Firebase init
   const firebaseConfig = {
     apiKey: "AIzaSyBqnVyK9BeJqMKuyYCqXzGOd1-07eEltEI",
     authDomain: "form-esport.firebaseapp.com",
@@ -13,10 +13,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const db = firebase.firestore();
   console.log('Firebase connected!');
 
-  // ===== 2. Const & elements =====
+  // 2) เอา element ตามที่มีใน HTML นี้
   const ADMIN_CODE = '0826940174';
 
-  // user screens
+  // user
   const userLoginScreen = document.getElementById('user-login-screen');
   const userFormScreen = document.getElementById('user-form-screen');
   const userLoginInput = document.getElementById('user-student-id');
@@ -26,13 +26,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const userFormMsg = document.getElementById('user-form-msg');
   const userLogoutBtn = document.getElementById('user-logout-btn');
 
-  // admin screens
+  // admin
   const adminLoginScreen = document.getElementById('admin-login-screen');
   const adminMenuScreen = document.getElementById('admin-menu-screen');
   const adminFormEditorScreen = document.getElementById('admin-form-editor-screen');
   const adminUsersScreen = document.getElementById('admin-users-screen');
 
-  // buttons (อันนี้บางอันอาจไม่มี → ต้องเช็กก่อน)
   const goAdminLoginBtn = document.getElementById('go-admin-login');
   const backToUserBtn = document.getElementById('back-to-user');
 
@@ -44,7 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const adminViewUsersBtn = document.getElementById('admin-view-users-btn');
   const adminLogoutBtn = document.getElementById('admin-logout-btn');
 
-  // admin form editor elems
   const adminFormList = document.getElementById('admin-form-list');
   const newQuestionLabel = document.getElementById('new-question-label');
   const newQuestionType = document.getElementById('new-question-type');
@@ -52,11 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const addQuestionBtn = document.getElementById('add-question-btn');
   const adminFormMsg = document.getElementById('admin-form-msg');
 
-  // admin users elems
   const adminUsersList = document.getElementById('admin-users-list');
   const adminUsersMsg = document.getElementById('admin-users-msg');
 
-  // back buttons
   const backToAdminMenu1 = document.getElementById('back-to-admin-menu-1');
   const backToAdminMenu2 = document.getElementById('back-to-admin-menu-2');
 
@@ -68,9 +64,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const show = el => el && el.classList.remove('hidden');
   const hide = el => el && el.classList.add('hidden');
 
-  // =========================
-  // 4. USER FLOW
-  // =========================
+  // ===============================
+  // USER FLOW
+  // ===============================
+
+  // ผู้ใช้กดเข้าสู่แบบฟอร์ม
   if (userLoginBtn) {
     userLoginBtn.addEventListener('click', async () => {
       const sid = (userLoginInput.value || '').trim();
@@ -88,15 +86,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // ผู้ใช้ออกจากระบบ
   if (userLogoutBtn) {
     userLogoutBtn.addEventListener('click', () => {
       currentStudentId = null;
-      if (userLoginInput) userLoginInput.value = '';
+      userLoginInput.value = '';
       hide(userFormScreen);
       show(userLoginScreen);
     });
   }
 
+  // โหลดคำถามจาก Firestore แล้วสร้างฟอร์ม
   async function loadFormForUser() {
     if (!dynamicForm) return;
     dynamicForm.innerHTML = 'กำลังโหลดแบบฟอร์ม...';
@@ -110,31 +110,31 @@ document.addEventListener('DOMContentLoaded', () => {
       q.id = doc.id;
       currentQuestions.push(q);
 
-      const field = document.createElement('div');
-      field.className = 'dynamic-field';
+      const wrap = document.createElement('div');
+      wrap.className = 'dynamic-field';
 
       const label = document.createElement('label');
       label.textContent = q.label || '(ไม่มีชื่อคำถาม)';
-      field.appendChild(label);
+      wrap.appendChild(label);
 
       if (q.type === 'select') {
-        const select = document.createElement('select');
-        select.name = q.id;
-        (q.options || []).forEach(opt => {
-          const op = document.createElement('option');
-          op.value = opt;
-          op.textContent = opt;
-          select.appendChild(op);
+        const sel = document.createElement('select');
+        sel.name = q.id;
+        (q.options || []).forEach(op => {
+          const opt = document.createElement('option');
+          opt.value = op;
+          opt.textContent = op;
+          sel.appendChild(opt);
         });
-        field.appendChild(select);
+        wrap.appendChild(sel);
       } else {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.name = q.id;
-        field.appendChild(input);
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.name = q.id;
+        wrap.appendChild(inp);
       }
 
-      frag.appendChild(field);
+      frag.appendChild(wrap);
     });
 
     dynamicForm.innerHTML = '';
@@ -155,9 +155,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function submitUserForm(e) {
     e.preventDefault?.();
-
     if (!currentStudentId) {
-      if (userFormMsg) userFormMsg.textContent = 'กรุณาเข้าสู่ระบบก่อน';
+      userFormMsg.textContent = 'กรุณาเข้าสู่ระบบก่อน';
       return;
     }
 
@@ -173,19 +172,18 @@ document.addEventListener('DOMContentLoaded', () => {
         answers,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-
-      if (userFormMsg) userFormMsg.textContent = 'ส่งแบบฟอร์มเรียบร้อย ✅';
+      userFormMsg.textContent = 'ส่งแบบฟอร์มเรียบร้อย ✅';
     } catch (err) {
       console.error(err);
-      if (userFormMsg) userFormMsg.textContent = 'ส่งแบบฟอร์มไม่สำเร็จ ❌';
+      userFormMsg.textContent = 'ส่งแบบฟอร์มไม่สำเร็จ ❌';
     }
   }
 
-  // =========================
-  // 5. ADMIN FLOW
-  // =========================
+  // ===============================
+  // ADMIN FLOW
+  // ===============================
 
-  // ไปหน้าแอดมินจากหน้า user
+  // ไปหน้าแอดมินจากหน้าผู้ใช้
   if (goAdminLoginBtn) {
     goAdminLoginBtn.addEventListener('click', () => {
       hide(userLoginScreen);
@@ -193,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // กลับไป user จากหน้าแอดมิน login
+  // กลับไปผู้ใช้จากหน้าแอดมิน
   if (backToUserBtn) {
     backToUserBtn.addEventListener('click', () => {
       hide(adminLoginScreen);
@@ -201,24 +199,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // แอดมินกด login
+  // แอดมิน login
   if (adminLoginBtn) {
     adminLoginBtn.addEventListener('click', () => {
       const code = (adminCodeInput.value || '').trim();
       if (code === ADMIN_CODE) {
-        if (adminLoginMsg) adminLoginMsg.textContent = '';
+        adminLoginMsg.textContent = '';
         hide(adminLoginScreen);
         show(adminMenuScreen);
       } else {
-        if (adminLoginMsg) adminLoginMsg.textContent = 'รหัสไม่ถูกต้อง';
+        adminLoginMsg.textContent = 'รหัสไม่ถูกต้อง';
       }
     });
   }
 
-  // ออกจากระบบแอดมิน
+  // แอดมินออก
   if (adminLogoutBtn) {
     adminLogoutBtn.addEventListener('click', () => {
-      if (adminCodeInput) adminCodeInput.value = '';
+      adminCodeInput.value = '';
       hide(adminMenuScreen);
       hide(adminFormEditorScreen);
       hide(adminUsersScreen);
@@ -226,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ไปหน้าแก้ไขฟอร์ม
+  // ไปหน้าแก้ฟอร์ม
   if (adminEditFormBtn) {
     adminEditFormBtn.addEventListener('click', async () => {
       hide(adminMenuScreen);
@@ -244,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ย้อนกลับจากหน้าแก้ฟอร์ม
+  // ย้อนจากแก้ฟอร์ม
   if (backToAdminMenu1) {
     backToAdminMenu1.addEventListener('click', () => {
       hide(adminFormEditorScreen);
@@ -252,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ย้อนกลับจากหน้าผู้ใช้
+  // ย้อนจากดูผู้ใช้
   if (backToAdminMenu2) {
     backToAdminMenu2.addEventListener('click', () => {
       hide(adminUsersScreen);
@@ -260,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // โหลดรายการคำถามให้แอดมิน
+  // โหลดรายการคำถามให้แอดมินดู
   async function loadAdminFormList() {
     if (!adminFormList) return;
     adminFormList.innerHTML = 'กำลังโหลด...';
@@ -279,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
     adminFormList.innerHTML = items.join('') || '<p>ยังไม่มีคำถาม</p>';
   }
 
-  // แอดมินเพิ่มคำถามใหม่
+  // แอดมินเพิ่มคำถาม
   if (addQuestionBtn) {
     addQuestionBtn.addEventListener('click', async () => {
       const label = (newQuestionLabel.value || '').trim();
@@ -287,14 +285,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const optionsRaw = (newQuestionOptions.value || '').trim();
 
       if (!label) {
-        if (adminFormMsg) adminFormMsg.textContent = 'กรุณาใส่ชื่อคำถาม';
+        adminFormMsg.textContent = 'กรุณาใส่ชื่อคำถาม';
         return;
       }
 
       // หา order ล่าสุด
-      const last = await db.collection('form_questions').orderBy('order', 'desc').limit(1).get();
+      const lastSnap = await db.collection('form_questions').orderBy('order', 'desc').limit(1).get();
       let nextOrder = 1;
-      last.forEach(doc => {
+      lastSnap.forEach(doc => {
         const d = doc.data();
         nextOrder = (d.order || 0) + 1;
       });
@@ -310,8 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       await db.collection('form_questions').add(data);
-
-      if (adminFormMsg) adminFormMsg.textContent = 'เพิ่มคำถามสำเร็จ ✅';
+      adminFormMsg.textContent = 'เพิ่มคำถามสำเร็จ ✅';
 
       newQuestionLabel.value = '';
       newQuestionOptions.value = '';
@@ -320,12 +317,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // โหลดผู้ใช้ทั้งหมด
+  // โหลดข้อมูลผู้สมัคร
   async function loadAdminUsers() {
     if (!adminUsersList) return;
     adminUsersList.innerHTML = 'กำลังโหลด...';
 
-    // ดึงคำถามมาก่อนเพื่อ map id -> label
+    // โหลดคำถามทั้งหมดมาก่อน เพื่อแปลง id -> label
     const qSnap = await db.collection('form_questions').orderBy('order').get();
     const questionsMap = {};
     qSnap.forEach(doc => {
@@ -342,10 +339,10 @@ document.addEventListener('DOMContentLoaded', () => {
     snap.forEach(doc => {
       const d = doc.data();
       const ans = d.answers || {};
-      const studentId = d.studentId || '-';
+      const sid = d.studentId || '-';
       const time = d.createdAt ? d.createdAt.toDate().toLocaleString('th-TH') : '';
 
-      const ansLines = Object.keys(ans).map(qid => {
+      const ansHtml = Object.keys(ans).map(qid => {
         const q = questionsMap[qid];
         const label = q ? q.label : qid;
         return `<div><strong>${label}</strong>: ${ans[qid]}</div>`;
@@ -353,9 +350,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       rows.push(`
         <div class="admin-item">
-          <div><strong>รหัส นศ.:</strong> ${studentId}</div>
+          <div><strong>รหัส นศ.:</strong> ${sid}</div>
           <div style="font-size:12px;color:#777">${time}</div>
-          <div>${ansLines}</div>
+          <div>${ansHtml}</div>
         </div>
       `);
     });
