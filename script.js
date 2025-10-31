@@ -1,3 +1,4 @@
+// ========== CONFIG FIREBASE ==========
 const firebaseConfig = {
   apiKey: "AIzaSyBqnVyK9BeJqMKuyYCqXzGOd1-07eEltEI",
   authDomain: "form-esport.firebaseapp.com",
@@ -8,21 +9,59 @@ const firebaseConfig = {
   measurementId: "G-GQZ8RK4JTC"
 };
 
+// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+console.log("Firebase connected!");
 
-console.log('Firebase connected!');
-
-const btnOrganizer = document.getElementById('btn-organizer');
+// ========== ELEMENTS ==========
+const MAX_PLAYER = 20;
 const roleScreen = document.getElementById('role-screen');
 const formScreen = document.getElementById('form-screen');
+const statusEl = document.getElementById('status');
+const btnPlayer = document.getElementById('btn-player');
+const btnOrganizer = document.getElementById('btn-organizer');
 const formTitle = document.getElementById('form-title');
 const roleInput = document.getElementById('roleInput');
 const regForm = document.getElementById('regForm');
 const formMsg = document.getElementById('form-msg');
 const backBtn = document.getElementById('backBtn');
 
+let isPlayerFull = false;
+
+// ========== CHECK PLAYER COUNT ==========
+async function checkPlayerCount() {
+  statusEl.textContent = 'กำลังเช็กจำนวนผู้แข่ง...';
+  try {
+    const snap = await db.collection('registrations')
+      .where('role', '==', 'player')
+      .get();
+
+    const count = snap.size;
+    if (count >= MAX_PLAYER) {
+      isPlayerFull = true;
+      statusEl.textContent = `ผู้แข่งครบแล้ว (${count}/${MAX_PLAYER}) เลือกเป็นผู้จัดงานแทน`;
+      btnPlayer.disabled = true;
+    } else {
+      isPlayerFull = false;
+      statusEl.textContent = `ผู้แข่งยังสมัครได้ (${count}/${MAX_PLAYER})`;
+      btnPlayer.disabled = false;
+    }
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = 'เช็กจำนวนไม่สำเร็จ ❌';
+  }
+}
+
+// เรียกตอนเริ่มโหลดเว็บ
+checkPlayerCount();
+
+// ========== เปิดฟอร์มแต่ละบทบาท ==========
 btnPlayer.addEventListener('click', () => {
+  if (isPlayerFull) {
+    alert('ผู้แข่งครบแล้ว เลือกเป็นผู้จัดงานแทน');
+    return;
+  }
   openForm('player', 'ฟอร์มสมัครเป็นผู้แข่ง');
 });
 
@@ -44,6 +83,7 @@ function openForm(role, title) {
   formScreen.classList.remove('hidden');
 }
 
+// ========== บันทึกข้อมูลลง Firestore ==========
 regForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   formMsg.textContent = 'กำลังบันทึก...';
@@ -53,29 +93,35 @@ regForm.addEventListener('submit', async (e) => {
   const email = formData.get('email');
   const studentId = formData.get('studentId');
   const fullname = formData.get('fullname');
+  const note = formData.get('note');
 
-  // กันชนรอบสุดท้าย
-  if (role === 'player') {
-    const snap = await db.collection('registrations')
-      .where('role', '==', 'player')
-      .get();
-    if (snap.size >= MAX_PLAYER) {
-      formMsg.textContent = 'ผู้แข่งครบแล้ว ส่งไม่ได้';
-      await checkPlayerCount();
-      return;
+  try {
+    // กันรอบสุดท้ายก่อนเพิ่ม
+    if (role === 'player') {
+      const snap = await db.collection('registrations')
+        .where('role', '==', 'player')
+        .get();
+      if (snap.size >= MAX_PLAYER) {
+        formMsg.textContent = 'ผู้แข่งครบแล้ว ส่งไม่ได้ ❌';
+        await checkPlayerCount();
+        return;
+      }
     }
+
+    await db.collection('registrations').add({
+      role,
+      email,
+      studentId,
+      fullname,
+      note,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    formMsg.textContent = 'ส่งข้อมูลสำเร็จ ✅';
+    regForm.reset();
+    await checkPlayerCount();
+  } catch (err) {
+    console.error(err);
+    formMsg.textContent = 'บันทึกไม่สำเร็จ ❌';
   }
-
-  await db.collection('registrations').add({
-    role,
-    email,
-    studentId,
-    fullname,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
-
-  formMsg.textContent = 'ส่งเรียบร้อย ✅';
-  regForm.reset();
-  // อัปเดตหน้าแรกเผื่อคนอื่นจะสมัครต่อ
-  await checkPlayerCount();
 });
