@@ -13,7 +13,7 @@
   <div class="app">
     <h1>ESport Registration</h1>
 
-    <!-- หน้าล็อกอิน -->
+    <!-- 1) Login -->
     <section id="login-screen" class="screen active">
       <h2>เข้าสู่ระบบ</h2>
       <input type="text" id="universal-id" placeholder="รหัสนักศึกษา / รหัสแอดมิน" />
@@ -21,7 +21,7 @@
       <p id="login-msg" class="msg"></p>
     </section>
 
-    <!-- หน้าผู้ใช้กรอกฟอร์ม -->
+    <!-- 2) User form -->
     <section id="user-form-screen" class="screen">
       <h2>แบบฟอร์มสมัคร</h2>
       <form id="dynamic-form"></form>
@@ -29,7 +29,7 @@
       <button id="user-back-btn">ออกจากระบบ</button>
     </section>
 
-    <!-- เมนูแอดมิน -->
+    <!-- 3) Admin menu -->
     <section id="admin-menu-screen" class="screen">
       <h2>แดชบอร์ดแอดมิน</h2>
       <button id="admin-edit-form-btn">จัดการฟอร์ม</button>
@@ -39,7 +39,7 @@
       <button id="admin-logout-btn" class="danger">ออกจากระบบ</button>
     </section>
 
-    <!-- แก้ไข/เพิ่มคำถาม -->
+    <!-- 4) Admin: form editor -->
     <section id="admin-form-editor-screen" class="screen">
       <h2>จัดการฟอร์ม</h2>
       <div id="admin-form-list" class="list-box"></div>
@@ -65,7 +65,7 @@
             <input type="number" id="new-option-limit" placeholder="จำกัด (เช่น 5)" min="1" />
             <button id="add-option-btn" type="button">เพิ่มตัวเลือก</button>
           </div>
-          <p class="muted">* ถ้าใส่จำนวน → ระบบจะนับจำนวนให้ (ทำให้กดได้จำกัด)</p>
+          <p class="muted">* ถ้าใส่จำนวน → ระบบจะนับให้และปิดเมื่อเต็ม</p>
         </div>
 
         <button id="add-question-btn" type="button">บันทึกคำถาม</button>
@@ -75,14 +75,14 @@
       <button id="back-to-admin-menu-1">กลับ</button>
     </section>
 
-    <!-- ดูข้อมูลผู้สมัคร -->
+    <!-- 5) Admin: view users -->
     <section id="admin-users-screen" class="screen">
       <h2>ข้อมูลผู้สมัคร</h2>
       <div id="admin-users-list" class="list-box"></div>
       <button id="back-to-admin-menu-2">กลับ</button>
     </section>
 
-    <!-- จัดการรหัส นศ. -->
+    <!-- 6) Admin: student ids -->
     <section id="admin-ids-screen" class="screen">
       <h2>จัดการรหัสนักศึกษา</h2>
       <div id="admin-ids-list" class="list-box"></div>
@@ -91,7 +91,7 @@
       <button id="back-to-admin-menu-3">กลับ</button>
     </section>
 
-    <!-- จัดการจำนวนบทบาท -->
+    <!-- 7) Admin: role limits -->
     <section id="admin-roles-screen" class="screen">
       <h2>จัดการจำนวนบทบาท</h2>
       <div id="admin-role-list" class="list-box"></div>
