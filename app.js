@@ -44,7 +44,7 @@ if (loginBtn) {
 
     localStorage.setItem("role", "student");
     localStorage.setItem("studentId", id);
-    // ไปหน้า user (คุณต้องมี user.html หรือฝัง form ในหน้านี้เอง)
+    // ไปหน้า user
     window.location.href = "user.html";
   });
 }
@@ -54,7 +54,10 @@ if (loginBtn) {
    ========================================================= */
 const logoutUserBtn = document.getElementById("logout-btn-user");
 if (logoutUserBtn) {
-  document.getElementById("logged-in-as").textContent = localStorage.getItem("studentId") || "-";
+  // แสดงรหัสบนหัวเว็บ
+  const sid = localStorage.getItem("studentId") || "-";
+  const asEl = document.getElementById("logged-in-as");
+  if (asEl) asEl.textContent = sid;
 
   logoutUserBtn.addEventListener("click", () => {
     localStorage.clear();
@@ -73,6 +76,7 @@ async function renderUserForm() {
 
   const studentId = localStorage.getItem("studentId") || "";
 
+  // โหลดคำถามจาก Firestore
   const qSnap = await db.collection("form_questions").orderBy("order", "asc").get();
 
   // นับจำนวนที่ใช้ไปใน dropdown
@@ -125,16 +129,19 @@ async function renderUserForm() {
       }
     }
 
+    // ทำให้ * เป็น span สีแดง (ถ้า required)
+    const labelHtml = `${q.label}${q.required ? ' <span class="required">*</span>' : ''}`;
+
     wrap.innerHTML += `
       <div class="question-field">
-        <label>${q.label}${q.required ? " *" : ""}</label>
+        <label>${labelHtml}</label>
         ${inputHtml}
       </div>
     `;
   });
 }
 
-/* user: submit form + redirect to login */
+/* user: submit form + redirect to login + validation */
 async function submitUserForm() {
   const uid = localStorage.getItem("studentId");
   if (!uid) return;
@@ -143,19 +150,41 @@ async function submitUserForm() {
   const successBox = document.getElementById("user-success");
 
   btn.disabled = true;
-  btn.textContent = "กำลังส่ง...";
+  btn.textContent = "กำลังตรวจสอบ...";
 
   try {
-    // โหลดคำถาม
+    // โหลดคำถาม (เพื่อรู้ว่าอันไหน required / select / มีโควต้า)
     const qSnap = await db.collection("form_questions").get();
     const questions = {};
     qSnap.forEach(d => questions[d.id] = d.data());
 
-    // เก็บคำตอบ
+    // เก็บคำตอบ + เช็ก required
     const answers = {};
+    const missingFields = [];       // เก็บชื่อคำถามที่ยังไม่กรอก
+
     document.querySelectorAll("[data-id]").forEach(el => {
-      answers[el.dataset.id] = el.value;
+      const qid = el.dataset.id;
+      const q = questions[qid];
+      const val = (el.value || "").trim();
+
+      // เช็ก required
+      if (q && q.required && !val) {
+        missingFields.push(q.label);
+        el.classList.add("input-error");
+      } else {
+        el.classList.remove("input-error");
+      }
+
+      answers[qid] = val;
     });
+
+    // ถ้ามีช่องที่ยังไม่กรอก → แจ้งเตือน
+    if (missingFields.length > 0) {
+      alert("กรุณากรอกข้อมูลให้ครบในช่องต่อไปนี้:\n- " + missingFields.join("\n- "));
+      btn.disabled = false;
+      btn.textContent = "ส่งแบบฟอร์ม";
+      return;
+    }
 
     // เช็ก quota dropdown
     for (const qId in answers) {
@@ -167,10 +196,10 @@ async function submitUserForm() {
       const opt = q.options.find(o => o.label === userChoice);
       if (!opt || !opt.limit) continue;
 
-      // นับจริง
-      const regSnap = await db.collection("registrations").get();
+      // นับจริงในฐาน
+      const regSnap2 = await db.collection("registrations").get();
       let used = 0;
-      regSnap.forEach(doc => {
+      regSnap2.forEach(doc => {
         const data = doc.data();
         if (data.answers && data.answers[qId] === userChoice) {
           used++;
@@ -185,7 +214,7 @@ async function submitUserForm() {
       }
     }
 
-    // บันทึก
+    // ถ้าทุกอย่างผ่าน → บันทึก
     await db.collection("registrations").doc(uid).set({
       userId: uid,
       answers,
@@ -409,7 +438,7 @@ window.deleteQuestion = async function(id) {
   loadQuestions();
 };
 
-/* ----- admin: ผู้สมัคร (table) + ลบได้ ----- */
+/* ----- admin: ผู้สมัคร ----- */
 async function loadRegistrations() {
   const tableEl = document.getElementById("registrations-table");
   if (!tableEl) return;
