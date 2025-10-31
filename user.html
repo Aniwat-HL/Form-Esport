@@ -1,48 +1,49 @@
 <!DOCTYPE html>
 <html lang="th">
-<head>
-  <meta charset="UTF-8">
-  <title>ลงทะเบียนเข้าร่วมกิจกรรม</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
-</head>
-<body class="user-bg">
-  <!-- top bar -->
-  <header class="user-topbar">
-    <div class="container-flex">
-      <div>
-        <h1 class="user-title">ลงทะเบียนเข้าร่วมกิจกรรม</h1>
-        <p class="muted small">กรอกข้อมูลตามที่ระบบต้องการให้ครบถ้วน</p>
+  <head>
+    <meta charset="UTF-8" />
+    <title>ลงทะเบียนเข้าร่วมกิจกรรม</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
+  </head>
+  <body class="user-shell">
+    <!-- top bar -->
+    <header class="user-topbar">
+      <div class="user-topbar-left">
+        <h1>ลงทะเบียนเข้าร่วมกิจกรรม</h1>
+        <p>กรอกข้อมูลตามที่ระบบต้องการให้ครบถ้วน</p>
       </div>
-      <div class="user-right">
-        <span id="logged-in-as" class="badge-muted"></span>
-        <button id="logout-btn-user" class="btn ghost sm">ออกจากระบบ</button>
+      <div class="user-topbar-right">
+        <span id="logged-in-as" class="user-badge">-</span>
+        <button id="logout-btn-user" class="user-logout">ออกจากระบบ</button>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <!-- content -->
-  <main class="user-main">
-    <div class="user-form-card">
-      <h2 class="card-title">ข้อมูลที่ต้องกรอก</h2>
-      <p class="muted small">* เครื่องหมายดอกจันคือข้อมูลที่จำเป็นต้องกรอก</p>
+    <!-- content -->
+    <main class="user-form-wrapper">
+      <div class="user-form-card">
+        <h2 class="user-form-title">ข้อมูลที่ต้องกรอก</h2>
+        <p class="user-form-sub">* ช่องที่มีเครื่องหมายดอกจันต้องกรอกให้ครบ</p>
 
-      <div id="user-form-container" class="user-form-grid">
-        <!-- app.js จะใส่ฟิลด์ให้ตรงนี้ -->
+        <!-- ฟิลด์จาก Firebase จะถูก render มาวางตรงนี้ -->
+        <div id="user-form-container"></div>
+
+        <button id="submit-user-form">ส่งแบบฟอร์ม</button>
+
+        <div id="user-success" class="hidden" aria-live="polite">
+          ส่งข้อมูลเรียบร้อยแล้ว ขอบคุณที่เข้าร่วมกิจกรรม ✅ กำลังกลับไปหน้าเข้าสู่ระบบ...
+        </div>
       </div>
+    </main>
 
-      <button id="submit-user-form" class="btn primary full mt-1">ส่งแบบฟอร์ม</button>
-
-      <div id="user-success" class="hidden" aria-live="polite">
-        ส่งข้อมูลเรียบร้อยแล้ว ขอบคุณที่เข้าร่วมกิจกรรม ✅ กำลังกลับไปหน้าเข้าสู่ระบบ...
-      </div>
-    </div>
-  </main>
-
-  <script src="app.js"></script>
-</body>
+    <script src="app.js"></script>
+  </body>
 </html>
