@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // ========== 1. Firebase init ==========
+  // ===== 1. Firebase init =====
   const firebaseConfig = {
     apiKey: "AIzaSyBqnVyK9BeJqMKuyYCqXzGOd1-07eEltEI",
     authDomain: "form-esport.firebaseapp.com",
@@ -13,38 +13,33 @@ document.addEventListener('DOMContentLoaded', () => {
   const db = firebase.firestore();
   console.log("Firebase connected!");
 
-  // ========== 2. DOM refs ==========
-  const ADMIN_CODE = "0826940174";
+  // ===== 2. DOM refs =====
+  const ADMIN_CODE = "0826940174";  // เปลี่ยนได้
 
-  // user
-  const userLoginScreen = document.getElementById("user-login-screen");
+  // screens
+  const loginScreen = document.getElementById("login-screen");
   const userFormScreen = document.getElementById("user-form-screen");
-  const userLoginInput = document.getElementById("user-student-id");
-  const userLoginBtn = document.getElementById("user-login-btn");
-  const userLoginMsg = document.getElementById("user-login-msg");
-  const dynamicForm = document.getElementById("dynamic-form");
-  const userFormMsg = document.getElementById("user-form-msg");
-  const userLogoutBtn = document.getElementById("user-logout-btn");
-
-  // admin screens
-  const adminLoginScreen = document.getElementById("admin-login-screen");
   const adminMenuScreen = document.getElementById("admin-menu-screen");
   const adminFormEditorScreen = document.getElementById("admin-form-editor-screen");
   const adminUsersScreen = document.getElementById("admin-users-screen");
   const adminIdsScreen = document.getElementById("admin-ids-screen");
 
-  // admin controls
-  const goAdminLoginBtn = document.getElementById("go-admin-login");
-  const backToUserBtn = document.getElementById("back-to-user");
+  // login
+  const loginInput = document.getElementById("universal-id");
+  const loginBtn = document.getElementById("login-btn");
+  const loginMsg = document.getElementById("login-msg");
+  const loginInputGroup = document.getElementById("login-input-group");
 
-  const adminCodeInput = document.getElementById("admin-code");
-  const adminLoginBtn = document.getElementById("admin-login-btn");
-  const adminLoginMsg = document.getElementById("admin-login-msg");
+  // user form
+  const dynamicForm = document.getElementById("dynamic-form");
+  const userFormMsg = document.getElementById("user-form-msg");
+  const userBackBtn = document.getElementById("user-back-btn");
 
+  // admin menu buttons
+  const adminLogoutBtn = document.getElementById("admin-logout-btn");
   const adminEditFormBtn = document.getElementById("admin-edit-form-btn");
   const adminViewUsersBtn = document.getElementById("admin-view-users-btn");
   const adminManageIdsBtn = document.getElementById("admin-manage-ids-btn");
-  const adminLogoutBtn = document.getElementById("admin-logout-btn");
 
   // admin form editor
   const adminFormList = document.getElementById("admin-form-list");
@@ -54,85 +49,76 @@ document.addEventListener('DOMContentLoaded', () => {
   const newQuestionOptions = document.getElementById("new-question-options");
   const addQuestionBtn = document.getElementById("add-question-btn");
   const adminFormMsg = document.getElementById("admin-form-msg");
+  const backToAdminMenu1 = document.getElementById("back-to-admin-menu-1");
 
   // admin users
   const adminUsersList = document.getElementById("admin-users-list");
   const adminUsersMsg = document.getElementById("admin-users-msg");
+  const backToAdminMenu2 = document.getElementById("back-to-admin-menu-2");
 
   // admin ids
   const adminIdsList = document.getElementById("admin-ids-list");
   const newStudentIdInput = document.getElementById("new-student-id");
   const addStudentIdBtn = document.getElementById("add-student-id-btn");
   const adminIdsMsg = document.getElementById("admin-ids-msg");
-
-  // back buttons
-  const backToAdminMenu1 = document.getElementById("back-to-admin-menu-1");
-  const backToAdminMenu2 = document.getElementById("back-to-admin-menu-2");
   const backToAdminMenu3 = document.getElementById("back-to-admin-menu-3");
 
   // state
   let currentStudentId = null;
   let currentQuestions = [];
-  // สำหรับโหมดแก้ไขฟอร์ม
   let editingQuestionId = null;
 
-  // helpers
-  const show = (el) => el && el.classList.remove("hidden");
-  const hide = (el) => el && el.classList.add("hidden");
+  // helper show/hide
+  const showScreen = (el) => {
+    [loginScreen, userFormScreen, adminMenuScreen, adminFormEditorScreen, adminUsersScreen, adminIdsScreen]
+      .forEach(s => s.classList.add('hidden'));
+    el.classList.remove('hidden');
+    el.classList.add('active');
+  };
 
-  // ==================================================
-  // USER FLOW
-  // ==================================================
-  if (userLoginBtn) {
-    userLoginBtn.addEventListener("click", async () => {
-      const sid = (userLoginInput.value || "").trim();
-      if (!sid) {
-        userLoginMsg.textContent = "กรุณากรอกรหัสนักศึกษา";
-        return;
-      }
+  // ===== 3. Login flow (ช่องเดียว) =====
+  async function handleLogin() {
+    const code = (loginInput.value || "").trim();
+    if (!code) {
+      loginMsg.textContent = "กรุณากรอกรหัสก่อน";
+      loginInputGroup.classList.add("error");
+      return;
+    }
+    loginInputGroup.classList.remove("error");
+    loginMsg.textContent = "";
 
-      if (sid === ADMIN_CODE) {
-        userLoginMsg.textContent = "นี่คือรหัสแอดมิน ให้กดเข้าส่วนแอดมินแทน";
-        return;
-      }
-
-      // เช็ครหัสจาก allowed_students
-      try {
-        const allowSnap = await db.collection("allowed_students").doc(sid).get();
-        if (!allowSnap.exists) {
-          userLoginMsg.textContent = "ยังไม่ได้อนุญาตให้ใช้รหัสนี้";
-          return;
-        }
-      } catch (err) {
-        console.error(err);
-        userLoginMsg.textContent = "เช็กสิทธิ์ไม่สำเร็จ";
-        return;
-      }
-
-      currentStudentId = sid;
-      userLoginMsg.textContent = "";
-
-      hide(userLoginScreen);
-      show(userFormScreen);
-
-      await loadFormForUser();
-    });
-  }
-
-  if (userLogoutBtn) {
-    userLogoutBtn.addEventListener("click", () => {
+    // 3.1 ถ้าเป็นแอดมิน
+    if (code === ADMIN_CODE) {
       currentStudentId = null;
-      userLoginInput.value = "";
-      hide(userFormScreen);
-      show(userLoginScreen);
-    });
+      showScreen(adminMenuScreen);
+      return;
+    }
+
+    // 3.2 ถ้าเป็นผู้ใช้ → ต้องมีใน allowed_students
+    try {
+      const doc = await db.collection("allowed_students").doc(code).get();
+      if (!doc.exists) {
+        loginMsg.textContent = "รหัสนี้ยังไม่ได้รับอนุญาต กรุณาติดต่อผู้ดูแลระบบ";
+        loginInputGroup.classList.add("error");
+        return;
+      }
+      currentStudentId = code;
+      await loadFormForUser();
+      showScreen(userFormScreen);
+    } catch (err) {
+      console.error(err);
+      loginMsg.textContent = "เชื่อมต่อฐานข้อมูลไม่ได้ ❌";
+    }
   }
 
-  // โหลดฟอร์มฝั่งผู้ใช้
-  async function loadFormForUser() {
-    if (!dynamicForm) return;
-    dynamicForm.innerHTML = "กำลังโหลดแบบฟอร์ม...";
+  loginBtn.addEventListener("click", handleLogin);
+  loginInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") handleLogin();
+  });
 
+  // ===== 4. User form =====
+  async function loadFormForUser() {
+    dynamicForm.innerHTML = "กำลังโหลดแบบฟอร์ม...";
     try {
       const snap = await db.collection("form_questions").orderBy("order").get();
       currentQuestions = [];
@@ -142,32 +128,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const q = doc.data();
         q.id = doc.id;
         currentQuestions.push(q);
-
-        const field = createFieldForUser(q);
-        frag.appendChild(field);
+        frag.appendChild(createUserField(q));
       });
 
       dynamicForm.innerHTML = "";
       dynamicForm.appendChild(frag);
 
-      // ปุ่ม submit
-      let submitBtn = document.getElementById("user-submit-form");
-      if (!submitBtn) {
-        submitBtn = document.createElement("button");
-        submitBtn.id = "user-submit-form";
-        submitBtn.textContent = "ส่งแบบฟอร์ม";
-        submitBtn.className = "primary";
-        dynamicForm.appendChild(submitBtn);
-      }
-      submitBtn.onclick = submitUserForm;
+      // ปุ่มส่ง
+      const submitBtn = document.createElement("button");
+      submitBtn.type = "button";
+      submitBtn.textContent = "ส่งแบบฟอร์ม";
+      submitBtn.className = "btn primary";
+      submitBtn.style.marginTop = "6px";
+      submitBtn.addEventListener("click", submitUserForm);
+      dynamicForm.appendChild(submitBtn);
     } catch (err) {
       console.error(err);
       dynamicForm.innerHTML = "โหลดแบบฟอร์มไม่สำเร็จ ❌";
     }
   }
 
-  // สร้างฟิลด์ตามประเภท (ฝั่งผู้ใช้)
-  function createFieldForUser(q) {
+  function createUserField(q) {
     const wrap = document.createElement("div");
     wrap.className = "dynamic-field";
 
@@ -175,7 +156,6 @@ document.addEventListener('DOMContentLoaded', () => {
     label.textContent = q.label || "(ไม่มีชื่อคำถาม)";
     wrap.appendChild(label);
 
-    // รองรับประเภทต่างๆ
     switch (q.type) {
       case "textarea": {
         const ta = document.createElement("textarea");
@@ -211,20 +191,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       case "radio": {
         (q.options || []).forEach((op, i) => {
-          const rWrap = document.createElement("div");
-          const radio = document.createElement("input");
-          radio.type = "radio";
-          radio.name = q.id;
-          radio.value = op;
-          radio.id = q.id + "_" + i;
+          const row = document.createElement("div");
+          const r = document.createElement("input");
+          r.type = "radio";
+          r.name = q.id;
+          r.value = op;
+          r.id = q.id + "_" + i;
 
-          const rLabel = document.createElement("label");
-          rLabel.htmlFor = radio.id;
-          rLabel.textContent = op;
+          const la = document.createElement("label");
+          la.htmlFor = r.id;
+          la.textContent = op;
 
-          rWrap.appendChild(radio);
-          rWrap.appendChild(rLabel);
-          wrap.appendChild(rWrap);
+          row.appendChild(r);
+          row.appendChild(la);
+          wrap.appendChild(row);
         });
         break;
       }
@@ -239,18 +219,13 @@ document.addEventListener('DOMContentLoaded', () => {
     return wrap;
   }
 
-  // ส่งฟอร์ม
-  async function submitUserForm(e) {
-    e.preventDefault?.();
-
+  async function submitUserForm() {
     if (!currentStudentId) {
       userFormMsg.textContent = "กรุณาเข้าสู่ระบบก่อน";
       return;
     }
-
     const answers = {};
     currentQuestions.forEach((q) => {
-      // radio ต้องหาแบบพิเศษ
       if (q.type === "radio") {
         const checked = dynamicForm.querySelector(`input[name="${q.id}"]:checked`);
         answers[q.id] = checked ? checked.value : "";
@@ -273,361 +248,221 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ==================================================
-  // ADMIN FLOW
-  // ==================================================
+  userBackBtn.addEventListener("click", () => {
+    currentStudentId = null;
+    loginInput.value = "";
+    userFormMsg.textContent = "";
+    showScreen(loginScreen);
+  });
 
-  // ไปหน้า login แอดมิน
-  if (goAdminLoginBtn) {
-    goAdminLoginBtn.addEventListener("click", () => {
-      hide(userLoginScreen);
-      show(adminLoginScreen);
-    });
-  }
+  // ===== 5. Admin menu =====
+  adminLogoutBtn.addEventListener("click", () => {
+    loginInput.value = "";
+    editingQuestionId = null;
+    showScreen(loginScreen);
+  });
 
-  if (backToUserBtn) {
-    backToUserBtn.addEventListener("click", () => {
-      hide(adminLoginScreen);
-      show(userLoginScreen);
-    });
-  }
+  adminEditFormBtn.addEventListener("click", async () => {
+    editingQuestionId = null;
+    formEditorTitle.textContent = "เพิ่มคำถามใหม่";
+    addQuestionBtn.textContent = "บันทึก";
+    newQuestionLabel.value = "";
+    newQuestionType.value = "text";
+    newQuestionOptions.value = "";
+    await loadAdminFormList();
+    showScreen(adminFormEditorScreen);
+  });
 
-  if (adminLoginBtn) {
-    adminLoginBtn.addEventListener("click", () => {
-      const code = (adminCodeInput.value || "").trim();
-      if (code === ADMIN_CODE) {
-        adminLoginMsg.textContent = "";
-        hide(adminLoginScreen);
-        show(adminMenuScreen);
-      } else {
-        adminLoginMsg.textContent = "รหัสไม่ถูกต้อง";
-      }
-    });
-  }
+  adminViewUsersBtn.addEventListener("click", async () => {
+    await loadAdminUsers();
+    showScreen(adminUsersScreen);
+  });
 
-  if (adminLogoutBtn) {
-    adminLogoutBtn.addEventListener("click", () => {
-      adminCodeInput.value = "";
-      hide(adminMenuScreen);
-      hide(adminFormEditorScreen);
-      hide(adminUsersScreen);
-      hide(adminIdsScreen);
-      show(userLoginScreen);
-      // reset โหมดแก้ไข
-      editingQuestionId = null;
-      formEditorTitle.textContent = "เพิ่มคำถามใหม่";
-      addQuestionBtn.textContent = "บันทึก";
-      newQuestionLabel.value = "";
-      newQuestionOptions.value = "";
-      newQuestionType.value = "text";
-    });
-  }
+  adminManageIdsBtn.addEventListener("click", async () => {
+    await loadAllowedStudents();
+    showScreen(adminIdsScreen);
+  });
 
-  // ไปหน้าแก้ฟอร์ม
-  if (adminEditFormBtn) {
-    adminEditFormBtn.addEventListener("click", async () => {
-      hide(adminMenuScreen);
-      show(adminFormEditorScreen);
-      editingQuestionId = null;
-      formEditorTitle.textContent = "เพิ่มคำถามใหม่";
-      addQuestionBtn.textContent = "บันทึก";
-      newQuestionLabel.value = "";
-      newQuestionOptions.value = "";
-      newQuestionType.value = "text";
-      await loadAdminFormList();
-    });
-  }
+  backToAdminMenu1.addEventListener("click", () => showScreen(adminMenuScreen));
+  backToAdminMenu2.addEventListener("click", () => showScreen(adminMenuScreen));
+  backToAdminMenu3.addEventListener("click", () => showScreen(adminMenuScreen));
 
-  // ไปหน้าดูผู้ใช้
-  if (adminViewUsersBtn) {
-    adminViewUsersBtn.addEventListener("click", async () => {
-      hide(adminMenuScreen);
-      show(adminUsersScreen);
-      await loadAdminUsers();
-    });
-  }
-
-  // ไปหน้าจัดการรหัส
-  if (adminManageIdsBtn) {
-    adminManageIdsBtn.addEventListener("click", async () => {
-      hide(adminMenuScreen);
-      show(adminIdsScreen);
-      await loadAllowedStudents();
-    });
-  }
-
-  // ย้อนจากหน้าแก้ฟอร์ม
-  if (backToAdminMenu1) {
-    backToAdminMenu1.addEventListener("click", () => {
-      hide(adminFormEditorScreen);
-      show(adminMenuScreen);
-    });
-  }
-
-  if (backToAdminMenu2) {
-    backToAdminMenu2.addEventListener("click", () => {
-      hide(adminUsersScreen);
-      show(adminMenuScreen);
-    });
-  }
-
-  if (backToAdminMenu3) {
-    backToAdminMenu3.addEventListener("click", () => {
-      hide(adminIdsScreen);
-      show(adminMenuScreen);
-    });
-  }
-
-  // โหลดรายการฟอร์มให้แอดมิน
+  // ===== 6. Admin: form list =====
   async function loadAdminFormList() {
-    if (!adminFormList) return;
     adminFormList.innerHTML = "กำลังโหลด...";
-    try {
-      const snap = await db.collection("form_questions").orderBy("order").get();
-      const items = [];
-      snap.forEach((doc) => {
-        const d = doc.data();
-        const qid = doc.id;
-        items.push(`
-          <div class="admin-item" data-id="${qid}">
-            <div>
-              <strong>${d.label || "(ไม่มีชื่อ)"} </strong>
-              <span class="badge ${d.type}">${d.type}</span>
-              ${
-                d.options && d.options.length
-                  ? `<div>ตัวเลือก: ${d.options.join(", ")}</div>`
-                  : ""
-              }
-            </div>
-            <div class="action-btns">
-              <button class="btn-edit" data-id="${qid}">แก้ไข</button>
-              <button class="btn-del" data-id="${qid}">ลบ</button>
-            </div>
+    const snap = await db.collection("form_questions").orderBy("order").get();
+    const items = [];
+    snap.forEach((doc) => {
+      const d = doc.data();
+      const id = doc.id;
+      items.push(`
+        <div class="admin-item" data-id="${id}">
+          <div>
+            <strong>${d.label || "(ไม่มีชื่อ)"}</strong>
+            <span class="badge ${d.type}">${d.type}</span>
+            ${d.options && d.options.length ? `<div>ตัวเลือก: ${d.options.join(", ")}</div>` : ""}
           </div>
-        `);
+          <div class="action-btns">
+            <button class="btn-edit" data-id="${id}">แก้ไข</button>
+            <button class="btn-del" data-id="${id}">ลบ</button>
+          </div>
+        </div>
+      `);
+    });
+    adminFormList.innerHTML = items.join("") || "<p>ยังไม่มีคำถาม</p>";
+
+    // bind edit
+    adminFormList.querySelectorAll(".btn-edit").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        const id = e.target.getAttribute("data-id");
+        const doc = await db.collection("form_questions").doc(id).get();
+        if (!doc.exists) return;
+        const d = doc.data();
+
+        editingQuestionId = id;
+        formEditorTitle.textContent = "แก้ไขคำถาม";
+        addQuestionBtn.textContent = "บันทึกการแก้";
+        newQuestionLabel.value = d.label || "";
+        newQuestionType.value = d.type || "text";
+        newQuestionOptions.value = (d.options || []).join(", ");
       });
-      adminFormList.innerHTML = items.join("") || "<p>ยังไม่มีคำถาม</p>";
+    });
 
-      // ผูก event แก้/ลบ
-      const editBtns = adminFormList.querySelectorAll(".btn-edit");
-      editBtns.forEach((btn) => {
-        btn.addEventListener("click", async (e) => {
-          const id = e.target.getAttribute("data-id");
-          await loadQuestionToEditor(id);
-        });
-      });
-
-      const delBtns = adminFormList.querySelectorAll(".btn-del");
-      delBtns.forEach((btn) => {
-        btn.addEventListener("click", async (e) => {
-          const id = e.target.getAttribute("data-id");
-          if (confirm("ลบคำถามนี้เลยไหม")) {
-            await db.collection("form_questions").doc(id).delete();
-            await loadAdminFormList();
-          }
-        });
-      });
-    } catch (err) {
-      console.error(err);
-      adminFormList.innerHTML = "โหลดฟอร์มไม่สำเร็จ ❌";
-    }
-  }
-
-  // โหลดคำถามเข้าช่องแก้ไข
-  async function loadQuestionToEditor(qid) {
-    const doc = await db.collection("form_questions").doc(qid).get();
-    if (!doc.exists) return;
-    const d = doc.data();
-
-    editingQuestionId = qid;
-    formEditorTitle.textContent = "แก้ไขคำถาม";
-    addQuestionBtn.textContent = "บันทึกการแก้";
-
-    newQuestionLabel.value = d.label || "";
-    newQuestionType.value = d.type || "text";
-    newQuestionOptions.value = (d.options || []).join(", ");
-  }
-
-  // เพิ่ม/บันทึกคำถาม
-  if (addQuestionBtn) {
-    addQuestionBtn.addEventListener("click", async () => {
-      const label = (newQuestionLabel.value || "").trim();
-      const type = newQuestionType.value;
-      const optionsRaw = (newQuestionOptions.value || "").trim();
-
-      if (!label) {
-        adminFormMsg.textContent = "กรุณาใส่ชื่อคำถาม";
-        return;
-      }
-
-      const data = {
-        label,
-        type,
-      };
-
-      if (type === "select" || type === "radio") {
-        data.options = optionsRaw
-          ? optionsRaw.split(",").map((s) => s.trim()).filter(Boolean)
-          : [];
-      } else {
-        data.options = [];
-      }
-
-      try {
-        if (editingQuestionId) {
-          // โหมดแก้
-          await db.collection("form_questions").doc(editingQuestionId).update(data);
-          adminFormMsg.textContent = "อัปเดตคำถามสำเร็จ ✅";
-        } else {
-          // โหมดเพิ่ม → ต้องหาลำดับก่อน
-          const last = await db
-            .collection("form_questions")
-            .orderBy("order", "desc")
-            .limit(1)
-            .get();
-          let nextOrder = 1;
-          last.forEach((doc) => {
-            const d = doc.data();
-            nextOrder = (d.order || 0) + 1;
-          });
-
-          data.order = nextOrder;
-          await db.collection("form_questions").add(data);
-          adminFormMsg.textContent = "เพิ่มคำถามสำเร็จ ✅";
-        }
-
-        // reset editor
-        editingQuestionId = null;
-        formEditorTitle.textContent = "เพิ่มคำถามใหม่";
-        addQuestionBtn.textContent = "บันทึก";
-        newQuestionLabel.value = "";
-        newQuestionOptions.value = "";
-        newQuestionType.value = "text";
-
+    // bind delete
+    adminFormList.querySelectorAll(".btn-del").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        const id = e.target.getAttribute("data-id");
+        if (!confirm("ลบคำถามนี้เลยไหม")) return;
+        await db.collection("form_questions").doc(id).delete();
         await loadAdminFormList();
-      } catch (err) {
-        console.error(err);
-        adminFormMsg.textContent = "บันทึกไม่สำเร็จ ❌";
-      }
+      });
     });
   }
 
-  // --------------------------------------------------
-  // ADMIN: โหลดข้อมูลผู้สมัคร
-  // --------------------------------------------------
-  async function loadAdminUsers() {
-    if (!adminUsersList) return;
-    adminUsersList.innerHTML = "กำลังโหลด...";
+  // เพิ่ม/แก้คำถาม
+  addQuestionBtn.addEventListener("click", async () => {
+    const label = (newQuestionLabel.value || "").trim();
+    const type = newQuestionType.value;
+    const optionsRaw = (newQuestionOptions.value || "").trim();
 
-    try {
-      const qSnap = await db.collection("form_questions").orderBy("order").get();
-      const qMap = {};
-      qSnap.forEach((doc) => (qMap[doc.id] = doc.data()));
+    if (!label) {
+      adminFormMsg.textContent = "กรุณาใส่ชื่อคำถาม";
+      return;
+    }
 
-      const snap = await db
-        .collection("registrations")
-        .orderBy("createdAt", "desc")
-        .get();
-      if (snap.empty) {
-        adminUsersList.innerHTML = "<p>ยังไม่มีคนส่งแบบฟอร์ม</p>";
-        return;
-      }
+    const data = { label, type };
 
-      const rows = [];
-      snap.forEach((doc) => {
+    if (type === "select" || type === "radio") {
+      data.options = optionsRaw
+        ? optionsRaw.split(",").map(s => s.trim()).filter(Boolean)
+        : [];
+    } else {
+      data.options = [];
+    }
+
+    if (editingQuestionId) {
+      await db.collection("form_questions").doc(editingQuestionId).update(data);
+      adminFormMsg.textContent = "อัปเดตคำถามสำเร็จ ✅";
+    } else {
+      const last = await db.collection("form_questions").orderBy("order","desc").limit(1).get();
+      let nextOrder = 1;
+      last.forEach((doc) => {
         const d = doc.data();
-        const sid = d.studentId || "-";
-        const time = d.createdAt
-          ? d.createdAt.toDate().toLocaleString("th-TH")
-          : "";
-        const ans = d.answers || {};
-
-        const ansHtml = Object.keys(ans)
-          .map((qid) => {
-            const q = qMap[qid];
-            const label = q ? q.label : qid;
-            return `<div><strong>${label}</strong>: ${ans[qid]}</div>`;
-          })
-          .join("");
-
-        rows.push(`
-          <div class="admin-item">
-            <div>
-              <div><strong>รหัส นศ.:</strong> ${sid}</div>
-              <div style="font-size:12px;color:#777">${time}</div>
-              <div>${ansHtml}</div>
-            </div>
-          </div>
-        `);
+        nextOrder = (d.order || 0) + 1;
       });
-
-      adminUsersList.innerHTML = rows.join("");
-    } catch (err) {
-      console.error(err);
-      adminUsersList.innerHTML = "โหลดข้อมูลผู้ใช้ไม่สำเร็จ ❌";
+      data.order = nextOrder;
+      await db.collection("form_questions").add(data);
+      adminFormMsg.textContent = "เพิ่มคำถามสำเร็จ ✅";
     }
+
+    editingQuestionId = null;
+    formEditorTitle.textContent = "เพิ่มคำถามใหม่";
+    addQuestionBtn.textContent = "บันทึก";
+    newQuestionLabel.value = "";
+    newQuestionOptions.value = "";
+    newQuestionType.value = "text";
+
+    await loadAdminFormList();
+  });
+
+  // ===== 7. Admin: users =====
+  async function loadAdminUsers() {
+    adminUsersList.innerHTML = "กำลังโหลด...";
+    const qSnap = await db.collection("form_questions").orderBy("order").get();
+    const qMap = {};
+    qSnap.forEach((doc) => qMap[doc.id] = doc.data());
+
+    const snap = await db.collection("registrations").orderBy("createdAt","desc").get();
+    if (snap.empty) {
+      adminUsersList.innerHTML = "<p>ยังไม่มีคนส่งแบบฟอร์ม</p>";
+      return;
+    }
+
+    const items = [];
+    snap.forEach((doc) => {
+      const d = doc.data();
+      const time = d.createdAt ? d.createdAt.toDate().toLocaleString("th-TH") : "";
+      const ans = d.answers || {};
+      const ansHtml = Object.keys(ans).map((qid) => {
+        const q = qMap[qid];
+        const label = q ? q.label : qid;
+        return `<div><strong>${label}</strong>: ${ans[qid]}</div>`;
+      }).join("");
+      items.push(`
+        <div class="admin-item">
+          <div><strong>รหัส นศ.:</strong> ${d.studentId || "-"}</div>
+          <div style="font-size:0.68rem;color:#6b7280">${time}</div>
+          <div style="margin-top:4px">${ansHtml}</div>
+        </div>
+      `);
+    });
+
+    adminUsersList.innerHTML = items.join("");
   }
 
-  // --------------------------------------------------
-  // ADMIN: จัดการรหัส นศ.
-  // --------------------------------------------------
+  // ===== 8. Admin: allowed students =====
   async function loadAllowedStudents() {
-    if (!adminIdsList) return;
     adminIdsList.innerHTML = "กำลังโหลด...";
-
-    try {
-      const snap = await db.collection("allowed_students").get();
-      if (snap.empty) {
-        adminIdsList.innerHTML = "<p>ยังไม่มีรหัสที่อนุญาต</p>";
-        return;
-      }
-
-      const rows = [];
-      snap.forEach((doc) => {
-        const sid = doc.id;
-        rows.push(`
-          <div class="admin-item">
-            <div><strong>${sid}</strong></div>
-            <button class="del-id-btn" data-sid="${sid}">ลบ</button>
-          </div>
-        `);
-      });
-
-      adminIdsList.innerHTML = rows.join("");
-
-      const delBtns = adminIdsList.querySelectorAll(".del-id-btn");
-      delBtns.forEach((btn) => {
-        btn.addEventListener("click", async (e) => {
-          const sid = e.target.getAttribute("data-sid");
-          await db.collection("allowed_students").doc(sid).delete();
-          await loadAllowedStudents();
-        });
-      });
-    } catch (err) {
-      console.error(err);
-      adminIdsList.innerHTML = "โหลดรายชื่อไม่ได้ ❌";
+    const snap = await db.collection("allowed_students").get();
+    if (snap.empty) {
+      adminIdsList.innerHTML = "<p>ยังไม่มีรหัสที่อนุญาต</p>";
+      return;
     }
-  }
 
-  if (addStudentIdBtn) {
-    addStudentIdBtn.addEventListener("click", async () => {
-      const sid = (newStudentIdInput.value || "").trim();
-      if (!sid) {
-        adminIdsMsg.textContent = "กรุณากรอกรหัส";
-        return;
-      }
-      try {
-        await db
-          .collection("allowed_students")
-          .doc(sid)
-          .set({ createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-        adminIdsMsg.textContent = "เพิ่มรหัสสำเร็จ ✅";
-        newStudentIdInput.value = "";
+    const items = [];
+    snap.forEach((doc) => {
+      const sid = doc.id;
+      items.push(`
+        <div class="admin-item">
+          <div><strong>${sid}</strong></div>
+          <button class="btn-del" data-sid="${sid}">ลบ</button>
+        </div>
+      `);
+    });
+    adminIdsList.innerHTML = items.join("");
+
+    // bind delete
+    adminIdsList.querySelectorAll(".btn-del").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        const sid = e.target.getAttribute("data-sid");
+        await db.collection("allowed_students").doc(sid).delete();
         await loadAllowedStudents();
-      } catch (err) {
-        console.error(err);
-        adminIdsMsg.textContent = "เพิ่มรหัสไม่สำเร็จ ❌";
-      }
+      });
     });
   }
+
+  addStudentIdBtn.addEventListener("click", async () => {
+    const sid = (newStudentIdInput.value || "").trim();
+    if (!sid) {
+      adminIdsMsg.textContent = "กรุณากรอกรหัส";
+      return;
+    }
+    await db.collection("allowed_students").doc(sid).set({
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    adminIdsMsg.textContent = "เพิ่มรหัสสำเร็จ ✅";
+    newStudentIdInput.value = "";
+    await loadAllowedStudents();
+  });
+
 });
