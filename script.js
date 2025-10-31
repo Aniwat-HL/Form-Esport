@@ -1,226 +1,344 @@
-// ========== CONFIG FIREBASE ==========
-const firebaseConfig = {
-  apiKey: "AIzaSyBqnVyK9BeJqMKuyYCqXzGOd1-07eEltEI",
-  authDomain: "form-esport.firebaseapp.com",
-  projectId: "form-esport",
-  storageBucket: "form-esport.firebasestorage.app",
-  messagingSenderId: "846451064511",
-  appId: "1:846451064511:web:67cdec6e10d527396a900a",
-  measurementId: "G-GQZ8RK4JTC"
-};
+document.addEventListener('DOMContentLoaded', () => {
+  // ===== 1. Firebase init =====
+  const firebaseConfig = {
+    apiKey: "AIzaSyBqnVyK9BeJqMKuyYCqXzGOd1-07eEltEI",
+    authDomain: "form-esport.firebaseapp.com",
+    projectId: "form-esport",
+    storageBucket: "form-esport.firebasestorage.app",
+    messagingSenderId: "846451064511",
+    appId: "1:846451064511:web:67cdec6e10d527396a900a",
+    measurementId: "G-GQZ8RK4JTC"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  console.log('Firebase connected');
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-console.log("Firebase connected!");
+  // ===== 2. Const & elements =====
+  const ADMIN_CODE = '0826940174';
 
-// ========== CONST / ELEMENT ==========
-const MAX_PLAYER = 20;
-const ADMIN_STUDENT_ID = '0826940174';
+  // user screens
+  const userLoginScreen = document.getElementById('user-login-screen');
+  const userFormScreen = document.getElementById('user-form-screen');
+  const userLoginInput = document.getElementById('user-student-id');
+  const userLoginBtn = document.getElementById('user-login-btn');
+  const userLoginMsg = document.getElementById('user-login-msg');
+  const dynamicForm = document.getElementById('dynamic-form');
+  const userFormMsg = document.getElementById('user-form-msg');
+  const userLogoutBtn = document.getElementById('user-logout-btn');
 
-// screens
-const loginScreen = document.getElementById('login-screen');
-const roleScreen = document.getElementById('role-screen');
-const formScreen = document.getElementById('form-screen');
-const adminScreen = document.getElementById('admin-screen');
+  // admin screens
+  const adminLoginScreen = document.getElementById('admin-login-screen');
+  const adminMenuScreen = document.getElementById('admin-menu-screen');
+  const adminFormEditorScreen = document.getElementById('admin-form-editor-screen');
+  const adminUsersScreen = document.getElementById('admin-users-screen');
 
-const statusEl = document.getElementById('status');
-const btnPlayer = document.getElementById('btn-player');
-const btnOrganizer = document.getElementById('btn-organizer');
-const backBtn = document.getElementById('backBtn');
-const logoutBtn = document.getElementById('logout-btn');
-const adminLogoutBtn = document.getElementById('admin-logout-btn');
+  const goAdminLoginBtn = document.getElementById('go-admin-login');
+  const backToUserBtn = document.getElementById('back-to-user');
 
-const formTitle = document.getElementById('form-title');
-const roleInput = document.getElementById('roleInput');
-const regForm = document.getElementById('regForm');
-const formMsg = document.getElementById('form-msg');
-const currentStudentIdInput = document.getElementById('currentStudentId');
+  const adminCodeInput = document.getElementById('admin-code');
+  const adminLoginBtn = document.getElementById('admin-login-btn');
+  const adminLoginMsg = document.getElementById('admin-login-msg');
 
-const loginInput = document.getElementById('login-student-id');
-const loginBtn = document.getElementById('login-btn');
-const loginMsg = document.getElementById('login-msg');
+  const adminEditFormBtn = document.getElementById('admin-edit-form-btn');
+  const adminViewUsersBtn = document.getElementById('admin-view-users-btn');
+  const adminLogoutBtn = document.getElementById('admin-logout-btn');
 
-const adminList = document.getElementById('admin-list');
+  // admin form editor elems
+  const adminFormList = document.getElementById('admin-form-list');
+  const newQuestionLabel = document.getElementById('new-question-label');
+  const newQuestionType = document.getElementById('new-question-type');
+  const newQuestionOptions = document.getElementById('new-question-options');
+  const addQuestionBtn = document.getElementById('add-question-btn');
+  const adminFormMsg = document.getElementById('admin-form-msg');
 
-let isPlayerFull = false;
-let currentStudentId = null;
+  // admin users elems
+  const adminUsersList = document.getElementById('admin-users-list');
+  const adminUsersMsg = document.getElementById('admin-users-msg');
 
-// ========== LOGIN FLOW ==========
-loginBtn.addEventListener('click', async () => {
-  const sid = (loginInput.value || '').trim();
-  if (!sid) {
-    loginMsg.textContent = 'กรุณากรอกรหัสนักศึกษา';
-    return;
-  }
+  // back buttons
+  const backToAdminMenu1 = document.getElementById('back-to-admin-menu-1');
+  const backToAdminMenu2 = document.getElementById('back-to-admin-menu-2');
 
-  currentStudentId = sid;
-  currentStudentIdInput.value = sid; // เก็บไปกับฟอร์มด้วย
+  // state
+  let currentStudentId = null;
+  let currentQuestions = [];  // จะเก็บ schema ของฟอร์ม
 
-  if (sid === ADMIN_STUDENT_ID) {
-    // ไปหน้า admin
-    loginScreen.classList.add('hidden');
-    adminScreen.classList.remove('hidden');
-    loadAdminList();
-  } else {
-    // ไปหน้าเลือกบทบาท
-    loginScreen.classList.add('hidden');
-    roleScreen.classList.remove('hidden');
-    checkPlayerCount(); // เช็กจำนวนผู้แข่งด้วย
-  }
-});
+  // ===== 3. Helper for show/hide =====
+  function show(el) { el.classList.remove('hidden'); }
+  function hide(el) { el.classList.add('hidden'); }
 
-// ออกจากระบบ (หน้าผู้ใช้)
-logoutBtn.addEventListener('click', () => {
-  currentStudentId = null;
-  loginInput.value = '';
-  roleScreen.classList.add('hidden');
-  formScreen.classList.add('hidden');
-  adminScreen.classList.add('hidden');
-  loginScreen.classList.remove('hidden');
-});
+  // ===== 4. USER FLOW =====
 
-// ออกจากระบบ (หน้าแอดมิน)
-adminLogoutBtn.addEventListener('click', () => {
-  currentStudentId = null;
-  loginInput.value = '';
-  adminScreen.classList.add('hidden');
-  loginScreen.classList.remove('hidden');
-});
-
-// ========== CHECK PLAYER COUNT ==========
-async function checkPlayerCount() {
-  statusEl.textContent = 'กำลังเช็กจำนวนผู้แข่ง...';
-  try {
-    const snap = await db.collection('registrations')
-      .where('role', '==', 'player')
-      .get();
-
-    const count = snap.size;
-    if (count >= MAX_PLAYER) {
-      isPlayerFull = true;
-      statusEl.textContent = `ผู้แข่งครบแล้ว (${count}/${MAX_PLAYER}) เลือกเป็นผู้จัดงานแทน`;
-      btnPlayer.disabled = true;
-    } else {
-      isPlayerFull = false;
-      statusEl.textContent = `ผู้แข่งยังสมัครได้ (${count}/${MAX_PLAYER})`;
-      btnPlayer.disabled = false;
+  // ผู้ใช้ login ด้วยรหัส นศ.
+  userLoginBtn.addEventListener('click', async () => {
+    const sid = (userLoginInput.value || '').trim();
+    if (!sid) {
+      userLoginMsg.textContent = 'กรุณากรอกรหัสนักศึกษา';
+      return;
     }
-  } catch (err) {
-    console.error(err);
-    statusEl.textContent = 'เช็กจำนวนไม่สำเร็จ ❌';
-  }
-}
+    currentStudentId = sid;
+    userLoginMsg.textContent = '';
 
-// ========== OPEN FORM ==========
-btnPlayer.addEventListener('click', () => {
-  if (isPlayerFull) {
-    alert('ผู้แข่งครบแล้ว เลือกเป็นผู้จัดงานแทน');
-    return;
-  }
-  openForm('player', 'ฟอร์มสมัครเป็นผู้แข่ง');
-});
+    // ไปหน้าแบบฟอร์ม
+    hide(userLoginScreen);
+    show(userFormScreen);
 
-btnOrganizer.addEventListener('click', () => {
-  openForm('organizer', 'ฟอร์มสมัครเป็นผู้จัดงาน');
-});
+    // โหลดฟอร์มจาก Firestore
+    await loadFormForUser();
+  });
 
-backBtn.addEventListener('click', () => {
-  formScreen.classList.add('hidden');
-  roleScreen.classList.remove('hidden');
-  formMsg.textContent = '';
-  regForm.reset();
-});
+  // ผู้ใช้กดออก
+  userLogoutBtn.addEventListener('click', () => {
+    currentStudentId = null;
+    userLoginInput.value = '';
+    hide(userFormScreen);
+    show(userLoginScreen);
+  });
 
-function openForm(role, title) {
-  roleInput.value = role;
-  formTitle.textContent = title;
-  roleScreen.classList.add('hidden');
-  formScreen.classList.remove('hidden');
-}
+  // โหลดฟอร์มจาก Firestore แล้วสร้าง input
+  async function loadFormForUser() {
+    dynamicForm.innerHTML = 'กำลังโหลดแบบฟอร์ม...';
+    const snap = await db.collection('form_questions').orderBy('order').get();
+    currentQuestions = [];
+    const frag = document.createDocumentFragment();
 
-// ========== SUBMIT FORM ==========
-regForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  formMsg.textContent = 'กำลังบันทึก...';
+    snap.forEach(doc => {
+      const q = doc.data();
+      q.id = doc.id;
+      currentQuestions.push(q);
 
-  const formData = new FormData(regForm);
-  const role = formData.get('role');
-  const email = formData.get('email');
-  const fullname = formData.get('fullname');
-  const note = formData.get('note');
-  const studentId = currentStudentIdInput.value || currentStudentId || '';
+      const field = document.createElement('div');
+      field.className = 'dynamic-field';
 
-  try {
-    // กันซ้ำตอนเป็นผู้แข่ง
-    if (role === 'player') {
-      const snap = await db.collection('registrations')
-        .where('role', '==', 'player')
-        .get();
-      if (snap.size >= MAX_PLAYER) {
-        formMsg.textContent = 'ผู้แข่งครบแล้ว ส่งไม่ได้ ❌';
-        await checkPlayerCount();
-        return;
+      const label = document.createElement('label');
+      label.textContent = q.label || '(ไม่มีชื่อคำถาม)';
+      field.appendChild(label);
+
+      if (q.type === 'select') {
+        const select = document.createElement('select');
+        select.name = q.id;
+        (q.options || []).forEach(opt => {
+          const op = document.createElement('option');
+          op.value = opt;
+          op.textContent = opt;
+          select.appendChild(op);
+        });
+        field.appendChild(select);
+      } else {
+        // default = text
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.name = q.id;
+        field.appendChild(input);
       }
-    }
 
-    await db.collection('registrations').add({
-      role,
-      email,
-      fullname,
-      note,
-      studentId,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      frag.appendChild(field);
     });
 
-    formMsg.textContent = 'ส่งข้อมูลสำเร็จ ✅';
-    regForm.reset();
-    await checkPlayerCount();
-  } catch (err) {
-    console.error(err);
-    formMsg.textContent = 'บันทึกไม่สำเร็จ ❌';
-  }
-});
+    dynamicForm.innerHTML = '';
+    dynamicForm.appendChild(frag);
 
-// ========== ADMIN: LOAD LIST ==========
-async function loadAdminList() {
-  adminList.innerHTML = 'กำลังโหลด...';
-  try {
+    // เพิ่มปุ่ม submit ถ้ายังไม่มี
+    if (!document.getElementById('user-submit-form')) {
+      const submitBtn = document.createElement('button');
+      submitBtn.id = 'user-submit-form';
+      submitBtn.textContent = 'ส่งแบบฟอร์ม';
+      submitBtn.className = 'primary';
+      dynamicForm.appendChild(submitBtn);
+
+      submitBtn.addEventListener('click', submitUserForm);
+    }
+  }
+
+  // ผู้ใช้กด submit แบบฟอร์ม
+  async function submitUserForm(e) {
+    e.preventDefault?.();
+
+    if (!currentStudentId) {
+      userFormMsg.textContent = 'กรุณาเข้าสู่ระบบก่อน';
+      return;
+    }
+
+    // รวบรวมคำตอบ
+    const answers = {};
+    currentQuestions.forEach(q => {
+      const el = dynamicForm.querySelector(`[name="${q.id}"]`);
+      answers[q.id] = el ? el.value : '';
+    });
+
+    try {
+      await db.collection('registrations').add({
+        studentId: currentStudentId,
+        answers,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      userFormMsg.textContent = 'ส่งแบบฟอร์มเรียบร้อย ✅';
+      // ล้างฟอร์ม (ถ้าต้องการ)
+      // dynamicForm.reset(); // ใช้ไม่ได้กับสร้างแบบ dynamic ทั้งหมด
+    } catch (err) {
+      console.error(err);
+      userFormMsg.textContent = 'ส่งแบบฟอร์มไม่สำเร็จ ❌';
+    }
+  }
+
+  // ===== 5. ADMIN FLOW =====
+
+  // ไปหน้า login แอดมิน
+  goAdminLoginBtn.addEventListener('click', () => {
+    hide(userLoginScreen);
+    show(adminLoginScreen);
+  });
+
+  // กลับไป user
+  backToUserBtn.addEventListener('click', () => {
+    hide(adminLoginScreen);
+    show(userLoginScreen);
+  });
+
+  // แอดมิน login
+  adminLoginBtn.addEventListener('click', () => {
+    const code = (adminCodeInput.value || '').trim();
+    if (code === ADMIN_CODE) {
+      adminLoginMsg.textContent = '';
+      hide(adminLoginScreen);
+      show(adminMenuScreen);
+    } else {
+      adminLoginMsg.textContent = 'รหัสไม่ถูกต้อง';
+    }
+  });
+
+  // ออกจากระบบแอดมิน
+  adminLogoutBtn.addEventListener('click', () => {
+    adminCodeInput.value = '';
+    hide(adminMenuScreen);
+    hide(adminFormEditorScreen);
+    hide(adminUsersScreen);
+    show(userLoginScreen);
+  });
+
+  // ไปหน้าแก้ไขฟอร์ม
+  adminEditFormBtn.addEventListener('click', async () => {
+    hide(adminMenuScreen);
+    show(adminFormEditorScreen);
+    await loadAdminFormList();
+  });
+
+  // ไปหน้าแสดงผู้ใช้
+  adminViewUsersBtn.addEventListener('click', async () => {
+    hide(adminMenuScreen);
+    show(adminUsersScreen);
+    await loadAdminUsers();
+  });
+
+  // ย้อนกลับจากหน้าแก้ฟอร์ม
+  backToAdminMenu1.addEventListener('click', () => {
+    hide(adminFormEditorScreen);
+    show(adminMenuScreen);
+  });
+
+  // ย้อนกลับจากหน้าผู้ใช้
+  backToAdminMenu2.addEventListener('click', () => {
+    hide(adminUsersScreen);
+    show(adminMenuScreen);
+  });
+
+  // โหลดรายการฟอร์มให้แอดมินดู
+  async function loadAdminFormList() {
+    adminFormList.innerHTML = 'กำลังโหลด...';
+    const snap = await db.collection('form_questions').orderBy('order').get();
+    const items = [];
+    snap.forEach(doc => {
+      const d = doc.data();
+      items.push(`
+        <div class="admin-item">
+          <strong>${d.label || '(ไม่มีชื่อ)'}</strong>
+          <span class="badge">${d.type}</span>
+          ${d.options && d.options.length ? `<div>options: ${d.options.join(', ')}</div>` : ''}
+        </div>
+      `);
+    });
+    adminFormList.innerHTML = items.join('') || '<p>ยังไม่มีคำถาม</p>';
+  }
+
+  // แอดมินเพิ่มคำถามใหม่
+  addQuestionBtn.addEventListener('click', async () => {
+    const label = (newQuestionLabel.value || '').trim();
+    const type = newQuestionType.value;
+    const optionsRaw = (newQuestionOptions.value || '').trim();
+
+    if (!label) {
+      adminFormMsg.textContent = 'กรุณาใส่ชื่อคำถาม';
+      return;
+    }
+
+    // หาลำดับล่าสุด
+    const snap = await db.collection('form_questions').orderBy('order', 'desc').limit(1).get();
+    let nextOrder = 1;
+    snap.forEach(doc => {
+      const d = doc.data();
+      nextOrder = (d.order || 0) + 1;
+    });
+
+    const docData = {
+      label,
+      type,
+      order: nextOrder
+    };
+
+    if (type === 'select' && optionsRaw) {
+      docData.options = optionsRaw.split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    await db.collection('form_questions').add(docData);
+
+    adminFormMsg.textContent = 'เพิ่มคำถามสำเร็จ ✅';
+    newQuestionLabel.value = '';
+    newQuestionOptions.value = '';
+
+    await loadAdminFormList();
+  });
+
+  // โหลดผู้ใช้ทั้งหมด
+  async function loadAdminUsers() {
+    adminUsersList.innerHTML = 'กำลังโหลด...';
+    const qSnap = await db.collection('form_questions').orderBy('order').get();
+    const questionsMap = {};
+    qSnap.forEach(doc => {
+      questionsMap[doc.id] = doc.data();
+    });
+
     const snap = await db.collection('registrations')
       .orderBy('createdAt', 'desc')
       .get();
 
     if (snap.empty) {
-      adminList.innerHTML = '<p>ยังไม่มีข้อมูล</p>';
+      adminUsersList.innerHTML = '<p>ยังไม่มีผู้ใช้งานส่งฟอร์ม</p>';
       return;
     }
 
-    const frags = [];
+    const rows = [];
     snap.forEach(doc => {
       const d = doc.data();
-      const role = d.role || '-';
-      const fullname = d.fullname || '-';
-      const email = d.email || '-';
-      const sid = d.studentId || '-';
+      const ans = d.answers || {};
+      const studentId = d.studentId || '-';
       const time = d.createdAt ? d.createdAt.toDate().toLocaleString('th-TH') : '';
 
-      frags.push(`
+      // แปลง answers ให้เป็นข้อความอ่านง่าย
+      const ansLines = Object.keys(ans).map(qid => {
+        const q = questionsMap[qid];
+        const label = q ? q.label : qid;
+        return `<div><strong>${label}</strong>: ${ans[qid]}</div>`;
+      }).join('');
+
+      rows.push(`
         <div class="admin-item">
-          <div><strong>${fullname}</strong> (${sid})</div>
-          <div>${email}</div>
-          <div>
-            บทบาท: ${role === 'player' ? 'ผู้แข่ง' : 'ผู้จัดงาน'}
-            <span class="badge ${role === 'player' ? 'player' : 'organizer'}">
-              ${role === 'player' ? 'PLAYER' : 'ORGANIZER'}
-            </span>
-          </div>
+          <div><strong>รหัส นศ.:</strong> ${studentId}</div>
           <div style="font-size:12px;color:#777">${time}</div>
+          <div>${ansLines}</div>
         </div>
       `);
     });
 
-    adminList.innerHTML = frags.join('');
-  } catch (err) {
-    console.error(err);
-    adminList.innerHTML = '<p>โหลดข้อมูลไม่สำเร็จ ❌</p>';
+    adminUsersList.innerHTML = rows.join('');
   }
-}
+});
