@@ -14,13 +14,22 @@
   <div class="app">
     <h1>จัดการแข่งขัน E-sport</h1>
 
+    <!-- หน้าล็อกอินด้วยรหัสนักศึกษา -->
+    <section id="login-screen">
+      <p>กรอกรหัสนักศึกษาเพื่อเข้าสู่ระบบ</p>
+      <input type="text" id="login-student-id" placeholder="กรอกรหัสนักศึกษา" />
+      <button id="login-btn" class="primary">เข้าสู่ระบบ</button>
+      <p id="login-msg"></p>
+    </section>
+
     <!-- หน้าเลือกบทบาท -->
-    <section id="role-screen">
+    <section id="role-screen" class="hidden">
       <p id="status">กำลังเช็กจำนวนผู้แข่ง...</p>
       <div class="role-buttons">
         <button id="btn-player" class="primary" disabled>สมัครเป็นผู้แข่ง</button>
         <button id="btn-organizer" class="secondary">สมัครเป็นผู้จัดงาน</button>
       </div>
+      <button id="logout-btn" class="ghost small">ออกจากระบบ</button>
     </section>
 
     <!-- ฟอร์มกรอก -->
@@ -29,12 +38,10 @@
 
       <form id="regForm">
         <input type="hidden" id="roleInput" name="role" />
+        <input type="hidden" id="currentStudentId" name="studentId" />
 
         <label>อีเมล (ม.อ.)</label>
         <input type="email" name="email" required />
-
-        <label>รหัสนักศึกษา</label>
-        <input type="text" name="studentId" required />
 
         <label>ชื่อ-นามสกุล</label>
         <input type="text" name="fullname" required />
@@ -47,6 +54,16 @@
       </form>
 
       <button id="backBtn" class="ghost">ย้อนกลับ</button>
+    </section>
+
+    <!-- หน้าแอดมิน -->
+    <section id="admin-screen" class="hidden">
+      <h2>รายการผู้สมัครทั้งหมด</h2>
+      <p id="admin-info">แสดงรายการจาก Firestore</p>
+      <div id="admin-list" class="admin-list">
+        <!-- รายการจะถูกเติมด้วย JS -->
+      </div>
+      <button id="admin-logout-btn" class="ghost small">ออกจากระบบ</button>
     </section>
   </div>
 
