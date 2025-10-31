@@ -27,7 +27,7 @@ if (loginBtn) {
     const id = document.getElementById("student-id-input").value.trim();
     if (!id) return alert("กรุณากรอกรหัสนักศึกษา/แอดมิน");
 
-    // admin
+    // --- admin ---
     if (id === ADMIN_CODE) {
       localStorage.setItem("role", "admin");
       localStorage.setItem("studentId", id);
@@ -35,7 +35,7 @@ if (loginBtn) {
       return;
     }
 
-    // student: ต้องมีใน allowed_students
+    // --- student: ต้องมีใน allowed_students ---
     const doc = await db.collection("allowed_students").doc(id).get();
     if (!doc.exists) {
       alert("ยังไม่ได้รับอนุญาตให้เข้าสู่ระบบ");
@@ -68,7 +68,13 @@ if (logoutUserBtn) {
   document.getElementById("submit-user-form").addEventListener("click", submitUserForm);
 }
 
-/* user: render form + auto-fill ถ้าเคยกรอกแล้ว */
+/**
+ * renderUserForm
+ * - ดึงฟอร์มจาก form_questions
+ * - พยายาม auto-fill จาก registrations/{studentId}
+ * - ถ้าไม่เจอ doc ตาม id → ไปหา doc ที่ userId == studentId แทน
+ * - นับจำนวนการใช้ของแต่ละตัวเลือกใน dropdown เพื่อปิดตัวที่เต็ม
+ */
 async function renderUserForm() {
   const wrap = document.getElementById("user-form-container");
   if (!wrap) return;
@@ -78,11 +84,26 @@ async function renderUserForm() {
   // 1) โหลดคำถาม
   const qSnap = await db.collection("form_questions").orderBy("order", "asc").get();
 
-  // 2) โหลดคำตอบเก่าของ นศ. คนนี้ (ถ้ามี)
-  const oldDoc = await db.collection("registrations").doc(studentId).get();
-  const oldAnswers = oldDoc.exists ? (oldDoc.data().answers || {}) : {};
+  // 2) โหลดคำตอบเก่าของ นศ. คนนี้ (ดึง 2 แบบ)
+  let oldAnswers = {};
+  let oldDoc = await db.collection("registrations").doc(studentId).get();
 
-  // 3) โหลดเพื่อเอาไปนับว่าตัวเลือกไหนเต็มแล้ว
+  if (oldDoc.exists) {
+    oldAnswers = oldDoc.data().answers || {};
+  } else {
+    // กรณีรอบเก่าเคยบันทึกแบบใช้ id สุ่ม แต่มี field userId
+    const q = await db.collection("registrations")
+      .where("userId", "==", studentId)
+      .limit(1)
+      .get();
+    if (!q.empty) {
+      const d = q.docs[0];
+      oldDoc = d;
+      oldAnswers = d.data().answers || {};
+    }
+  }
+
+  // 3) โหลดทั้งหมดเพื่อไปนับ dropdown ที่เต็มแล้ว
   const regSnap = await db.collection("registrations").get();
   const counts = {};
   regSnap.forEach(doc => {
@@ -96,6 +117,7 @@ async function renderUserForm() {
     });
   });
 
+  // 4) สร้างฟอร์ม
   wrap.innerHTML = "";
   qSnap.forEach(d => {
     const q = d.data();
@@ -125,7 +147,9 @@ async function renderUserForm() {
           const label = full
             ? `${o.label} (เต็ม ${used}/${o.limit})`
             : `${o.label} (${used}/${o.limit})`;
-          return `<option value="${o.label}" ${o.label === oldValue ? "selected" : ""} ${full ? "disabled" : ""}>${label}</option>`;
+          // ถ้าเคยเลือกอันที่เต็มไว้แล้ว ให้ยังเลือกได้
+          const shouldDisable = full && o.label !== oldValue;
+          return `<option value="${o.label}" ${o.label === oldValue ? "selected" : ""} ${shouldDisable ? "disabled" : ""}>${label}</option>`;
         }).join("")}
       </select>`;
     } else {
@@ -144,23 +168,15 @@ async function renderUserForm() {
       </div>
     `;
   });
-
-  // ถ้าส่งแล้ว (มี doc อยู่) → จะให้กรอกซ้ำได้ไหม?
-  // ตอนนี้: อนุญาตให้แก้ได้ (เพราะเรา auto-fill แล้ว)
-  // ถ้าอยากไม่ให้แก้เลย ให้ uncomment โค้ดด้านล่าง
-  /*
-  if (oldDoc.exists) {
-    const successBox = document.getElementById("user-success");
-    if (successBox) {
-      successBox.classList.remove("hidden");
-      successBox.textContent = "คุณส่งแบบฟอร์มนี้แล้ว ✅";
-    }
-    document.getElementById("submit-user-form").disabled = true;
-  }
-  */
 }
 
-/* user: submit form + validate + quota + redirect */
+/**
+ * user: submit form
+ * - เช็กช่องที่ * ก่อน
+ * - เช็ก limit dropdown (ต่อ option)
+ * - บันทึก
+ * - โชว์ success แล้วกลับหน้า login
+ */
 async function submitUserForm() {
   const uid = localStorage.getItem("studentId");
   if (!uid) return;
@@ -172,12 +188,12 @@ async function submitUserForm() {
   btn.textContent = "กำลังตรวจสอบ...";
 
   try {
-    // โหลดคำถามเพื่อรู้ว่าอันไหน required / select
+    // โหลดคำถามทั้งหมด เพื่อใช้ rule
     const qSnap = await db.collection("form_questions").get();
     const questions = {};
     qSnap.forEach(d => questions[d.id] = d.data());
 
-    // เก็บคำตอบจาก DOM
+    // เก็บคำตอบจาก DOM + เช็ก required
     const answers = {};
     const missingFields = [];
 
@@ -186,7 +202,6 @@ async function submitUserForm() {
       const q = questions[qid];
       const val = (el.value || "").trim();
 
-      // เช็ก required
       if (q && q.required && !val) {
         missingFields.push(q.label);
         el.classList.add("input-error");
@@ -197,7 +212,6 @@ async function submitUserForm() {
       answers[qid] = val;
     });
 
-    // ถ้ามีช่องยังไม่กรอก
     if (missingFields.length > 0) {
       alert("กรุณากรอกข้อมูลให้ครบในช่องต่อไปนี้:\n- " + missingFields.join("\n- "));
       btn.disabled = false;
@@ -205,7 +219,7 @@ async function submitUserForm() {
       return;
     }
 
-    // เช็ก quota ของ dropdown
+    // เช็ก limit ของ dropdown (ต่อ option)
     for (const qId in answers) {
       const q = questions[qId];
       if (!q) continue;
@@ -215,7 +229,7 @@ async function submitUserForm() {
       const opt = q.options.find(o => o.label === userChoice);
       if (!opt || !opt.limit) continue;
 
-      // นับจริง
+      // นับจริงใน DB
       const regSnap = await db.collection("registrations").get();
       let used = 0;
       regSnap.forEach(doc => {
@@ -233,7 +247,7 @@ async function submitUserForm() {
       }
     }
 
-    // บันทึกลง Firestore
+    // บันทึกลง Firestore (doc id = รหัส นศ.)
     await db.collection("registrations").doc(uid).set({
       userId: uid,
       answers,
@@ -328,7 +342,7 @@ if (logoutAdminBtn) {
   loadAllowed();
   loadRoles();
 
-  // ปุ่มใหญ่ๆ
+  // ปุ่มใหญ่
   document.getElementById("add-question-btn").addEventListener("click", addQuestion);
   document.getElementById("add-allowed-id-btn").addEventListener("click", addAllowed);
   document.getElementById("add-role-btn").addEventListener("click", addRole);
@@ -396,7 +410,7 @@ async function addQuestion() {
     order: nextOrder
   });
 
-  // reset
+  // reset form add
   document.getElementById("new-q-label").value = "";
   document.getElementById("new-q-required").checked = false;
   document.getElementById("new-q-autoemail").checked = false;
