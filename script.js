@@ -19,50 +19,49 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentSectionId = null;
   let answersBuffer = {};
   let allRegistrationsCache = [];
-  let editingQuestions = []; // ใช้ในหน้า admin sections
+  let editingQuestions = []; // เก็บคำถามของ section ที่กำลังแก้
 
   // ===== 3. DOM =====
   const screens = {};
   document.querySelectorAll(".screen").forEach(s => screens[s.id] = s);
 
-  function show(id) {
-    Object.values(screens).forEach(s => s.classList.remove("active"));
-    screens[id]?.classList.add("active");
-  }
-  function safeMsg(el, txt) { if (el) el.textContent = txt; }
-
-  const loginBtn = document.getElementById("login-btn");
-  const loginMsg = document.getElementById("login-msg");
-  const universalId = document.getElementById("universal-id");
   const dynamicForm = document.getElementById("dynamic-form");
   const userFormMsg = document.getElementById("user-form-msg");
-
+  const universalId = document.getElementById("universal-id");
+  const loginMsg = document.getElementById("login-msg");
   const qEditor = document.getElementById("questions-editor");
   const adminFormMsg = document.getElementById("admin-form-msg");
 
-  // ===== helpers =====
+  function show(id) {
+    Object.values(screens).forEach(s => s.classList.remove("active"));
+    if (screens[id]) screens[id].classList.add("active");
+  }
+  function safeMsg(el, txt) { if (el) el.textContent = txt; }
+
+  // ==== helper ====
   function buildPsuEmailFromStudentId(studentId) {
     if (!studentId) return "";
     return `s${studentId}@phuket.psu.ac.th`;
   }
 
   // ===== LOGIN =====
-  loginBtn?.addEventListener("click", async () => {
+  document.getElementById("login-btn")?.addEventListener("click", async () => {
     const code = (universalId.value || "").trim();
     if (!code) return safeMsg(loginMsg, "กรุณากรอกรหัส");
 
-    // admin login
+    // admin
     if (code === ADMIN_CODE) {
       show("admin-menu-screen");
       return;
     }
 
-    // student
+    // user
     const doc = await db.collection("allowed_students").doc(code).get();
     if (!doc.exists) {
       safeMsg(loginMsg, "รหัสนี้ยังไม่ได้รับอนุญาต");
       return;
     }
+
     currentStudent = code;
     answersBuffer = {};
     await loadUserFormSections();
@@ -75,7 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
     show("login-screen");
   });
 
-  // ===== USER: Load sections =====
+  // ===== USER: โหลดฟอร์มแบบหลาย section =====
   async function loadUserFormSections() {
     dynamicForm.innerHTML = "กำลังโหลด...";
     const snap = await db.collection("form_sections").orderBy("order").get();
@@ -93,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function renderSection(secId) {
     const section = allSections.find(s => s.id === secId);
     if (!section) {
-      dynamicForm.innerHTML = "<p>ไม่พบ Section</p>";
+      dynamicForm.innerHTML = "<p>ไม่พบ Section นี้</p>";
       return;
     }
 
@@ -105,6 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
     for (const q of (section.questions || [])) {
       const wrap = document.createElement("div");
       wrap.className = "dynamic-field";
+
       const label = document.createElement("label");
       label.textContent = q.label;
       wrap.appendChild(label);
@@ -127,6 +127,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (q.type === "select") {
         const sel = document.createElement("select");
         sel.name = q.id;
+
         const goToMap = {};
         const limitMap = {};
 
@@ -135,7 +136,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const o = document.createElement("option");
           o.value = optLabel;
 
-          // จำกัดจำนวน
+          // limit per option
           if (opt.limit) {
             const rlSnap = await db.collection("role_limits").doc(optLabel).get();
             const current = rlSnap.exists ? (rlSnap.data().current || 0) : 0;
@@ -158,7 +159,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         sel._goToMap = goToMap;
         sel._limitMap = limitMap;
-
         wrap.appendChild(sel);
       }
       else if (q.type === "textarea") {
@@ -189,14 +189,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function handleNext(section) {
-    // เก็บคำตอบ
+    // เก็บคำตอบของ section นี้
     for (const q of (section.questions || [])) {
       const el = dynamicForm.querySelector(`[name="${q.id}"]`);
       if (!el) continue;
       answersBuffer[q.id] = el.value;
     }
 
-    // ดูว่ามี select ที่มี goTo ไหม
+    // ดูว่ามี select ที่กำหนด goTo ไหม
     let jumpTo = null;
     for (const q of (section.questions || [])) {
       if (q.type !== "select") continue;
@@ -216,7 +216,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // ไม่มี goTo → ไปถัดไป
+    // ถ้าไม่มี goTo → ไป section ถัดไป
     const idx = allSections.findIndex(s => s.id === section.id);
     if (idx >= 0 && idx < allSections.length - 1) {
       const nextId = allSections[idx + 1].id;
@@ -233,7 +233,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // เช็ก limit (จากคำตอบทั้งหมด)
+    // เช็ก limit จากคำตอบทั้งหมด
     let roleToUpdate = null;
     for (const key of Object.keys(answersBuffer)) {
       const val = (answersBuffer[key] || "").trim();
@@ -299,42 +299,52 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("back-to-admin-from-ids")?.addEventListener("click", ()=>show("admin-menu-screen"));
   document.getElementById("back-to-admin-from-roles")?.addEventListener("click", ()=>show("admin-menu-screen"));
 
-  // ===== ADMIN: Sections UI =====
+  // ===== ADMIN: Sections =====
   async function loadAdminSections() {
     const list = document.getElementById("admin-sections-list");
     list.innerHTML = "กำลังโหลด...";
 
     const snap = await db.collection("form_sections").orderBy("order").get();
     if (snap.empty) {
-      list.innerHTML = "<p>ยังไม่มี Section</p>";
-    } else {
-      list.innerHTML = snap.docs.map(d => {
-        const data = d.data();
-        return `
-          <div class="box">
-            <strong>${d.id}</strong> - ${data.title || ""}
-            <button class="small-btn" data-edit="${d.id}">แก้ไข</button>
-            <button class="small-btn" data-del="${d.id}">ลบ</button>
-          </div>
-        `;
-      }).join("");
+      list.innerHTML = "<p>ยังไม่มี section</p>";
+      // เตรียมช่องให้เพิ่มได้เลย
+      const secIdInput = document.getElementById("section-id");
+      const secTitleInput = document.getElementById("section-title");
+      if (secIdInput) secIdInput.value = "sec_main";
+      if (secTitleInput) secTitleInput.value = "ข้อมูลทั่วไป";
+      editingQuestions = [];
+      renderQuestionEditor();
+      return;
     }
 
-    // edit
+    list.innerHTML = snap.docs.map(d => {
+      const data = d.data();
+      return `
+        <div class="box">
+          <strong>${d.id}</strong> - ${data.title || ""}
+          <button class="small-btn" data-edit="${d.id}">แก้ไข</button>
+          <button class="small-btn" data-del="${d.id}">ลบ</button>
+        </div>
+      `;
+    }).join("");
+
+    // ผูกปุ่มแก้ไข
     list.querySelectorAll("[data-edit]").forEach(btn => {
       btn.onclick = async () => {
         const id = btn.dataset.edit;
         const doc = await db.collection("form_sections").doc(id).get();
         if (!doc.exists) return;
         const data = doc.data();
-        document.getElementById("section-id").value = id;
-        document.getElementById("section-title").value = data.title || "";
+        const secIdInput = document.getElementById("section-id");
+        const secTitleInput = document.getElementById("section-title");
+        if (secIdInput) secIdInput.value = id;
+        if (secTitleInput) secTitleInput.value = data.title || "";
         editingQuestions = Array.isArray(data.questions) ? data.questions : [];
         renderQuestionEditor();
       };
     });
 
-    // delete
+    // ผูกปุ่มลบ
     list.querySelectorAll("[data-del]").forEach(btn => {
       btn.onclick = async () => {
         const id = btn.dataset.del;
@@ -343,17 +353,9 @@ document.addEventListener("DOMContentLoaded", () => {
         await loadAdminSections();
       };
     });
-
-    // ถ้าไม่มี section → ให้เริ่มด้วย sec_main
-    if (snap.empty) {
-      document.getElementById("section-id").value = "sec_main";
-      document.getElementById("section-title").value = "ข้อมูลทั่วไป";
-      editingQuestions = [];
-      renderQuestionEditor();
-    }
   }
 
-  // render question editor
+  // ========== question editor (UI แบบไม่ต้องพิมพ์ JSON) ==========
   function renderQuestionEditor() {
     qEditor.innerHTML = "";
     editingQuestions.forEach((q, index) => {
@@ -376,17 +378,17 @@ document.addEventListener("DOMContentLoaded", () => {
       qEditor.appendChild(div);
     });
 
-    // change label / type
+    // แก้ชื่อคำถาม / เปลี่ยนประเภท
     qEditor.querySelectorAll("[data-field]").forEach(el => {
       el.onchange = (e)=>{
         const idx = parseInt(e.target.dataset.idx);
         const field = e.target.dataset.field;
         editingQuestions[idx][field] = e.target.value;
-        renderQuestionEditor(); // ถ้าเปลี่ยน type ให้ refresh
+        renderQuestionEditor(); // ถ้าเปลี่ยน type ให้รีเรนเดอร์
       };
     });
 
-    // delete question
+    // ลบคำถาม
     qEditor.querySelectorAll("[data-del]").forEach(btn => {
       btn.onclick = () => {
         const idx = parseInt(btn.dataset.del);
@@ -402,8 +404,8 @@ document.addEventListener("DOMContentLoaded", () => {
       html += `
         <div class="option-row">
           <input type="text" value="${opt.label || ""}" placeholder="ชื่อตัวเลือก" data-q="${qIndex}" data-opt="${i}" data-opt-field="label">
-          <input type="number" value="${opt.limit || ""}" placeholder="จำกัด (เว้นว่างได้)" data-q="${qIndex}" data-opt="${i}" data-opt-field="limit" style="max-width:90px">
-          <input type="text" value="${opt.goTo || ""}" placeholder="ไป section (เช่น sec_player)" data-q="${qIndex}" data-opt="${i}" data-opt-field="goTo">
+          <input type="number" value="${opt.limit || ""}" placeholder="จำกัด" data-q="${qIndex}" data-opt="${i}" data-opt-field="limit" style="max-width:90px">
+          <input type="text" value="${opt.goTo || ""}" placeholder="ไป section" data-q="${qIndex}" data-opt="${i}" data-opt-field="goTo">
           <button class="small-btn" data-opt-del="${i}" data-q="${qIndex}">ลบ</button>
         </div>
       `;
@@ -412,14 +414,22 @@ document.addEventListener("DOMContentLoaded", () => {
     return html;
   }
 
-  // events for options
+  // คลิกเพิ่มคำถาม
+  document.getElementById("add-question-btn")?.addEventListener("click", () => {
+    editingQuestions.push({ label: "", type: "text" });
+    renderQuestionEditor();
+  });
+
+  // จัดการตัวเลือกของ dropdown
   qEditor.addEventListener("click", e => {
+    // เพิ่มตัวเลือก
     if (e.target.dataset.addOpt !== undefined) {
       const qi = parseInt(e.target.dataset.addOpt);
       editingQuestions[qi].options = editingQuestions[qi].options || [];
       editingQuestions[qi].options.push({ label: "" });
       renderQuestionEditor();
     }
+    // ลบตัวเลือก
     if (e.target.dataset.optDel !== undefined) {
       const qi = parseInt(e.target.dataset.q);
       const oi = parseInt(e.target.dataset.optDel);
@@ -434,27 +444,36 @@ document.addEventListener("DOMContentLoaded", () => {
       const oi = parseInt(e.target.dataset.opt);
       const field = e.target.dataset.optField;
       const val = e.target.value;
-      editingQuestions[qi].options[oi][field] = field==="limit" && val!=="" ? parseInt(val) : val;
+      if (!editingQuestions[qi].options) editingQuestions[qi].options = [];
+      editingQuestions[qi].options[oi][field] =
+        (field === "limit" && val !== "") ? parseInt(val) : val;
     }
   });
 
-  document.getElementById("add-question-btn")?.addEventListener("click", () => {
-    editingQuestions.push({ label: "", type: "text" });
-    renderQuestionEditor();
-  });
-
+  // ✅ ปุ่มบันทึก section (เวอร์ชันกัน null)
   document.getElementById("save-section-btn")?.addEventListener("click", async () => {
-    const id = (document.getElementById("section-id").value || "").trim();
-    const title = (document.getElementById("section-title").value || "").trim();
+    const idEl = document.getElementById("section-id");
+    const titleEl = document.getElementById("section-title");
+
+    if (!idEl || !titleEl) {
+      console.warn("section-id หรือ section-title ยังไม่อยู่ใน DOM ตอนกดบันทึก");
+      return;
+    }
+
+    const id = (idEl.value || "").trim();
+    const title = (titleEl.value || "").trim();
+
     if (!id) {
       safeMsg(adminFormMsg, "กรุณาใส่รหัส Section");
       return;
     }
+
     await db.collection("form_sections").doc(id).set({
       title,
       questions: editingQuestions,
       order: Date.now()
     }, { merge: true });
+
     safeMsg(adminFormMsg, "บันทึก Section แล้ว ✅");
     await loadAdminSections();
   });
@@ -473,7 +492,7 @@ document.addEventListener("DOMContentLoaded", () => {
         renderAdminUsers(allRegistrationsCache);
         return;
       }
-      const filtered = allRegistrationsCache.filter(r => (r.studentId||"").includes(q));
+      const filtered = allRegistrationsCache.filter(r => (r.studentId || "").includes(q));
       renderAdminUsers(filtered);
     };
     document.getElementById("user-search-clear-btn").onclick = () => {
