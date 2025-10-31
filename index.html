@@ -15,7 +15,7 @@
   <div class="app shell fade-in">
     <header class="topbar">
       <h1 class="logo">ESport Registration</h1>
-      <p class="subtitle">ระบบลงทะเบียนการแข่งขัน E-Sport สำหรับนักศึกษา</p>
+      <p class="subtitle">ระบบลงทะเบียนการแข่งขัน E-Sport</p>
     </header>
 
     <!-- LOGIN -->
@@ -27,49 +27,12 @@
       <p id="login-msg" class="msg"></p>
     </section>
 
-    <!-- USER FORM -->
+    <!-- USER FORM (เรนเดอร์จากฐานข้อมูล) -->
     <section id="user-form-screen" class="screen card">
       <h2>แบบฟอร์มสมัคร</h2>
-      <p class="muted">กรุณากรอกข้อมูลให้ครบถ้วน</p>
-
-      <form id="user-form" class="form-grid">
-        <div class="form-field">
-          <label>ชื่อ - นามสกุล</label>
-          <input type="text" id="f-name" placeholder="เช่น อนิวรรต บุญคงมาก" required />
-        </div>
-
-        <div class="form-field">
-          <label>อีเมล PSU (ระบบสร้างอัตโนมัติ)</label>
-          <input type="email" id="f-email" readonly />
-        </div>
-
-        <div class="form-field">
-          <label>บทบาทที่สมัคร <span class="tiny muted">(จะแสดงจำนวนแบบสด)</span></label>
-          <select id="f-role">
-            <!-- จะถูกเติมจาก Firestore role_limits -->
-          </select>
-        </div>
-
-        <div class="form-field">
-          <label>เกมที่สนใจเข้าร่วม</label>
-          <div class="chips" id="f-games">
-            <label><input type="checkbox" value="Valorant" /> Valorant</label>
-            <label><input type="checkbox" value="ROV" /> ROV</label>
-            <label><input type="checkbox" value="PUBG Mobile" /> PUBG Mobile</label>
-            <label><input type="checkbox" value="FC Online" /> FC Online</label>
-            <label><input type="checkbox" value="อื่นๆ" /> อื่นๆ</label>
-          </div>
-        </div>
-
-        <div class="form-field">
-          <label>หมายเหตุ / ความต้องการพิเศษ</label>
-          <textarea id="f-note" rows="3" placeholder="ระบุเพิ่มเติม (ถ้ามี)"></textarea>
-        </div>
-
-        <button type="button" id="submit-form-btn" class="btn primary">ส่งแบบฟอร์ม</button>
-        <p id="user-form-msg" class="msg"></p>
-      </form>
-
+      <p class="muted">กรุณากรอกข้อมูลให้ครบ</p>
+      <form id="dynamic-user-form"></form>
+      <p id="user-form-msg" class="msg"></p>
       <button id="user-logout-btn" class="btn ghost mt-2">ออกจากระบบ</button>
     </section>
 
@@ -77,25 +40,47 @@
     <section id="user-success-screen" class="screen card center">
       <div class="success-icon">✅</div>
       <h2>ส่งแบบฟอร์มเรียบร้อย</h2>
-      <p class="muted">ขอบคุณที่ลงทะเบียน เราจะติดต่อกลับทางอีเมล PSU ของคุณ</p>
+      <p class="muted">ขอบคุณที่ลงทะเบียน</p>
       <button id="success-logout-btn" class="btn ghost">กลับไปหน้าเข้าสู่ระบบ</button>
     </section>
 
     <!-- ADMIN MENU -->
     <section id="admin-menu-screen" class="screen card">
       <h2>แดชบอร์ดแอดมิน</h2>
-      <p class="muted">จัดการผู้ลงทะเบียน, รหัสนักศึกษา และจำนวนบทบาท</p>
       <div class="admin-btns">
-        <button id="admin-view-users-btn" class="btn primary w-100">📋 ดูข้อมูลผู้ลงทะเบียน</button>
-        <button id="admin-manage-ids-btn" class="btn secondary w-100">🧑‍🎓 จัดการรหัสที่อนุญาต</button>
+        <button id="admin-form-builder-btn" class="btn primary w-100">📝 แก้ไขแบบฟอร์ม</button>
+        <button id="admin-view-users-btn" class="btn secondary w-100">📋 ดูข้อมูลผู้สมัคร</button>
+        <button id="admin-manage-ids-btn" class="btn secondary w-100">🧑‍🎓 จัดการรหัสนักศึกษา</button>
         <button id="admin-role-limits-btn" class="btn secondary w-100">📊 จัดการจำนวนบทบาท</button>
       </div>
       <button id="admin-logout-btn" class="btn ghost mt-2">ออกจากระบบ</button>
     </section>
 
+    <!-- ADMIN: FORM BUILDER -->
+    <section id="admin-form-screen" class="screen card">
+      <h2>แก้ไขแบบฟอร์ม</h2>
+      <p class="muted">แอดมินสามารถเพิ่ม/ลบ/แก้ไขคำถามได้ และเลือกประเภทคำตอบได้</p>
+      <div id="admin-form-list" class="list-box"></div>
+
+      <div class="builder-box">
+        <h3>เพิ่มคำถามใหม่</h3>
+        <input type="text" id="new-q-label" placeholder="ชื่อคำถาม เช่น ชื่อ - นามสกุล" />
+        <select id="new-q-type">
+          <option value="text">ข้อความสั้น</option>
+          <option value="textarea">ย่อหน้า</option>
+          <option value="select">ตัวเลือก (dropdown)</option>
+        </select>
+        <button id="add-question-btn" class="btn small primary mt-1">เพิ่มคำถาม</button>
+      </div>
+
+      <p class="tiny muted">* ถ้าประเภทเป็น dropdown จะมีปุ่มเพิ่มตัวเลือก และติ๊ก “จำกัดจำนวน” ได้</p>
+
+      <button id="back-to-admin-from-form" class="btn ghost mt-2">กลับ</button>
+    </section>
+
     <!-- ADMIN: USERS -->
     <section id="admin-users-screen" class="screen card">
-      <h2>ข้อมูลผู้ลงทะเบียน</h2>
+      <h2>ข้อมูลผู้สมัคร</h2>
       <div class="search-bar">
         <input type="text" id="user-search-input" placeholder="ค้นหาด้วยรหัสนักศึกษา" />
         <button id="user-search-btn" class="btn small">ค้นหา</button>
@@ -105,7 +90,7 @@
       <button id="back-to-admin-from-users" class="btn ghost mt-2">กลับ</button>
     </section>
 
-    <!-- ADMIN: ALLOWED IDS -->
+    <!-- ADMIN: IDS -->
     <section id="admin-ids-screen" class="screen card">
       <h2>จัดการรหัสนักศึกษา</h2>
       <div id="admin-ids-list" class="list-box"></div>
@@ -119,16 +104,15 @@
     <!-- ADMIN: ROLE LIMITS -->
     <section id="admin-roles-screen" class="screen card">
       <h2>จัดการจำนวนบทบาท</h2>
-      <p class="muted">จำนวนนี้จะไปแสดงในฟอร์มของผู้ใช้แบบสด และใช้เช็กตอนส่งฟอร์ม</p>
+      <p class="muted">รายการนี้ถูกสร้างอัตโนมัติจาก dropdown ที่ติ๊ก “จำกัดจำนวน”</p>
       <div id="admin-role-list" class="list-box"></div>
       <div class="inline mt-1">
-        <input type="text" id="new-role-label" placeholder="เพิ่มชื่อบทบาท เช่น กรรมการ" />
+        <input type="text" id="new-role-label" placeholder="เพิ่มชื่อบทบาท" />
         <input type="number" id="new-role-max" placeholder="จำนวนสูงสุด" />
         <button id="add-role-btn" class="btn small primary">เพิ่มบทบาท</button>
       </div>
       <button id="back-to-admin-from-roles" class="btn ghost mt-2">กลับ</button>
     </section>
-
   </div>
 
   <script src="script.js"></script>
