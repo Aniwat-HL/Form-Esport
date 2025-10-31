@@ -24,17 +24,12 @@ body {
   margin-bottom: 22px;
   color: #fff;
 }
-.logo {
-  font-size: 28px;
-  font-weight: 700;
-  margin: 0;
-}
-.subtitle {
-  margin: 6px 0 0;
-  opacity: .8;
-}
+.logo { font-size: 28px; font-weight: 700; margin: 0; }
+.subtitle { margin: 6px 0 0; opacity: .8; }
+
 .screen { display: none; }
 .screen.active { display: block; }
+
 .card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255,255,255,.08);
@@ -45,6 +40,7 @@ body {
   margin-bottom: 20px;
   box-shadow: 0 20px 40px rgba(0,0,0,.1);
 }
+
 input, select, textarea {
   width: 100%;
   padding: 9px 14px;
@@ -68,8 +64,6 @@ label {
 }
 .muted { opacity: .7; font-size: .9rem; }
 .tiny { font-size: .75rem; }
-
-.form-grid .form-field { margin-bottom: 12px; }
 
 .btn {
   border: none;
@@ -100,21 +94,6 @@ label {
 .mt-2 { margin-top: 14px; }
 .w-100 { width: 100%; }
 
-.msg { margin-top: 6px; font-size: .85rem; color: #ffb347; }
-
-.chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.chips label {
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 999px;
-  padding: 5px 14px;
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  cursor: pointer;
-}
-.chips input { width: auto; }
-
 .list-box {
   max-height: 360px;
   overflow-y: auto;
@@ -123,19 +102,52 @@ label {
   gap: 10px;
   margin-top: 10px;
 }
-.admin-card {
+.admin-card,
+.q-card {
   background: rgba(15,23,42, .25);
   border: 1px solid rgba(255,255,255,.04);
   border-radius: 14px;
-  padding: 9px 12px;
+  padding: 9px 12px 12px;
 }
-.admin-card .title-line {
+.q-card-header {
   display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-weight: 600;
+  gap: 10px;
+  align-items: center;
 }
-.admin-card small { opacity: .6; }
+.q-card-header input,
+.q-card-header select { margin-bottom: 0; }
+.q-del { background: #ef4444; border: none; border-radius: 10px; padding: 4px 10px; }
+
+.q-options {
+  margin-top: 8px;
+  border-top: 1px dashed rgba(255,255,255,.1);
+  padding-top: 6px;
+}
+.option-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+.option-row input[type="text"] { flex: 1.2; }
+.option-row input[type="number"] { width: 90px; }
+.option-row label { margin-bottom: 0; display: flex; align-items: center; gap: 4px; }
+.opt-del {
+  background: #e11d48;
+  border: none;
+  color: #fff;
+  border-radius: 8px;
+  padding: 4px 10px;
+}
+.add-option-btn {
+  background: rgba(255,255,255,.05);
+  border: 1px dashed rgba(255,255,255,.15);
+  border-radius: 999px;
+  padding: 4px 12px;
+  color: #fff;
+  cursor: pointer;
+  margin-top: 2px;
+  font-size: .75rem;
+}
 
 .inline { display: flex; gap: 8px; }
 .search-bar { display: flex; gap: 8px; margin-top: 6px; }
@@ -150,6 +162,12 @@ label {
 
 @media (max-width: 640px) {
   .card { padding: 16px 14px 18px; }
-  .topbar .logo { font-size: 22px; }
-  .search-bar, .inline { flex-wrap: wrap; }
+  .search-bar, .inline, .option-row { flex-wrap: wrap; }
+}
+.builder-box {
+  margin-top: 14px;
+  background: rgba(255,255,255,.02);
+  border: 1px solid rgba(255,255,255,.04);
+  border-radius: 14px;
+  padding: 10px 12px;
 }
