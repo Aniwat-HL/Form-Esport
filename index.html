@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>แบบฟอร์มลงทะเบียน</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>แบบฟอร์มลงทะเบียน</h1>
+    <p>กรอกข้อมูลให้ครบ แล้วกดส่ง</p>
+
+    <form id="regForm">
+      <label>อีเมล</label>
+      <input type="email" name="email" required />
+
+      <label>รหัสนักศึกษา</label>
+      <input type="text" name="studentId" placeholder="6530xxxxx" />
+
+      <label>คำนำหน้า</label>
+      <select name="title">
+        <option value="">-- เลือก --</option>
+        <option value="นาย">นาย</option>
+        <option value="นางสาว">นางสาว</option>
+        <option value="อื่นๆ">อื่น ๆ</option>
+      </select>
+
+      <label>ชื่อ-นามสกุล</label>
+      <input type="text" name="fullname" required />
+
+      <label>ตำแหน่งที่อยากเป็น</label>
+      <select name="position" id="positionSelect" required>
+        <option value="">-- เลือกตำแหน่ง --</option>
+        <option value="ผู้อำนวยการการแข่งขัน">ผู้อำนวยการการแข่งขัน</option>
+        <option value="ผู้จัดการแข่งขัน">ผู้จัดการแข่งขัน</option>
+        <option value="กรรมการผู้ตัดสิน">กรรมการผู้ตัดสิน</option>
+        <option value="ฝ่ายถ่ายทอดสด">ฝ่ายถ่ายทอดสด</option>
+        <option value="สตาฟ">สตาฟ</option>
+      </select>
+
+      <label>อาหารว่าง / หมายเหตุ</label>
+      <input type="text" name="food" />
+
+      <button type="submit">ส่งข้อมูล</button>
+      <p id="status"></p>
+    </form>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
