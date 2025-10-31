@@ -213,7 +213,7 @@ button.add-q {
   margin-left: 6px;
 }
 
-/* responsive for admin editor */
+/* responsive */
 @media (max-width: 700px) {
   .q-header {
     flex-direction: column;
