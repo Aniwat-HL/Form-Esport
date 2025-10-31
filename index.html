@@ -2,9 +2,10 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>ESport Registration (Section Form)</title>
+  <title>ESport Registration (Google-Form-like)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
+
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -13,7 +14,7 @@
   <div class="app">
     <h1>ESport Registration</h1>
 
-    <!-- 1) LOGIN -->
+    <!-- LOGIN -->
     <section id="login-screen" class="screen active">
       <h2>เข้าสู่ระบบ</h2>
       <input type="text" id="universal-id" placeholder="รหัสนักศึกษา / รหัสแอดมิน" />
@@ -21,76 +22,74 @@
       <p id="login-msg" class="msg"></p>
     </section>
 
-    <!-- 2) USER FORM (section) -->
+    <!-- USER FORM -->
     <section id="user-form-screen" class="screen">
       <h2 id="form-title">แบบฟอร์มสมัคร</h2>
       <form id="dynamic-form"></form>
       <p id="user-form-msg" class="msg"></p>
-      <button id="user-back-btn" class="ghost">ออกจากระบบ</button>
+      <button id="user-logout-btn" class="ghost">ออกจากระบบ</button>
     </section>
 
-    <!-- 3) ADMIN MENU -->
+    <!-- ADMIN MENU -->
     <section id="admin-menu-screen" class="screen">
       <h2>แดชบอร์ดแอดมิน</h2>
-      <button id="admin-sections-btn">จัดการ Sections (เหมือน Google Form)</button>
-      <button id="admin-view-users-btn">ดูข้อมูลการสมัคร</button>
-      <button id="admin-manage-ids-btn">จัดการรหัสนักศึกษา</button>
-      <button id="admin-role-limits-btn">จัดการจำนวนบทบาท</button>
+      <button id="admin-sections-btn">1) จัดการ Sections (หน้าฟอร์ม)</button>
+      <button id="admin-view-users-btn">2) ดูข้อมูลการสมัคร</button>
+      <button id="admin-manage-ids-btn">3) จัดการรหัสนักศึกษา</button>
+      <button id="admin-role-limits-btn">4) จัดการจำนวนบทบาท</button>
       <button id="admin-logout-btn" class="danger">ออกจากระบบ</button>
     </section>
 
-    <!-- 4) ADMIN: sections -->
+    <!-- ADMIN: SECTIONS -->
     <section id="admin-sections-screen" class="screen">
-      <h2>จัดการ Sections</h2>
+      <h2>จัดการ Sections (เหมือน Google Form)</h2>
       <div id="admin-sections-list" class="list-box"></div>
 
-      <h3>เพิ่ม / แก้ไข section</h3>
+      <h3>แก้ไข / เพิ่ม Section</h3>
       <div class="box">
-        <input type="text" id="section-id" placeholder="id section เช่น sec_main / sec_player" />
-        <input type="text" id="section-title" placeholder="ชื่อ section ที่จะแสดง" />
-        <textarea id="section-raw-questions" rows="6" placeholder='ใส่ JSON คำถาม เช่น
-[
-  {"id":"fullname","label":"ชื่อ-นามสกุล","type":"text"},
-  {"id":"role","label":"ต้องการสมัครเป็น","type":"select","options":[
-    {"label":"ผู้จัดงาน","goTo":"sec_organizer","limit":5},
-    {"label":"นักแข่ง","goTo":"sec_player","limit":20},
-    {"label":"ผู้ชม"}
-  ]}
-]
-'></textarea>
-        <button id="save-section-btn">บันทึก section</button>
-        <p class="muted">* ถ้าตัวเลือกมี field <code>goTo</code> จะพาไป section นั้น</p>
+        <input type="text" id="section-id" placeholder="รหัส Section เช่น sec_main" />
+        <input type="text" id="section-title" placeholder="ชื่อ Section ที่จะแสดง" />
+
+        <h4>คำถามใน Section นี้</h4>
+        <div id="questions-editor"></div>
+        <button id="add-question-btn" type="button">➕ เพิ่มคำถาม</button>
+        <p class="muted">* ถ้าเลือกประเภท Dropdown จะมีช่องเพิ่มตัวเลือก (จำกัดจำนวน + ลิงก์ไป Section อื่น)</p>
+
+        <button id="save-section-btn" class="primary">💾 บันทึก Section</button>
+        <p id="admin-form-msg" class="msg"></p>
       </div>
 
-      <button id="back-to-admin-from-sections">กลับ</button>
+      <button id="back-to-admin-from-sections" class="ghost">กลับ</button>
     </section>
 
-    <!-- 5) ADMIN: view users -->
+    <!-- ADMIN: USERS -->
     <section id="admin-users-screen" class="screen">
-      <h2>ข้อมูลผู้สมัคร</h2>
+      <h2>ข้อมูลการสมัคร</h2>
       <div class="search-bar">
         <input type="text" id="user-search-input" placeholder="ค้นหาด้วยรหัสนักศึกษา" />
         <button id="user-search-btn">ค้นหา</button>
         <button id="user-search-clear-btn" class="ghost-btn">ล้าง</button>
       </div>
       <div id="admin-users-list" class="list-box"></div>
-      <button id="back-to-admin-from-users">กลับ</button>
+      <button id="back-to-admin-from-users" class="ghost">กลับ</button>
     </section>
 
-    <!-- 6) ADMIN: allowed students -->
+    <!-- ADMIN: ALLOWED STUDENTS -->
     <section id="admin-ids-screen" class="screen">
       <h2>จัดการรหัสนักศึกษา</h2>
       <div id="admin-ids-list" class="list-box"></div>
-      <input type="text" id="new-student-id" placeholder="เพิ่มรหัสนักศึกษา" />
-      <button id="add-student-id-btn">เพิ่มรหัส</button>
-      <button id="back-to-admin-from-ids">กลับ</button>
+      <div class="inline">
+        <input type="text" id="new-student-id" placeholder="เพิ่มรหัสนักศึกษา" />
+        <button id="add-student-id-btn">เพิ่ม</button>
+      </div>
+      <button id="back-to-admin-from-ids" class="ghost">กลับ</button>
     </section>
 
-    <!-- 7) ADMIN: role limits -->
+    <!-- ADMIN: ROLE LIMITS -->
     <section id="admin-roles-screen" class="screen">
       <h2>จัดการจำนวนบทบาท</h2>
       <div id="admin-role-list" class="list-box"></div>
-      <button id="back-to-admin-from-roles">กลับ</button>
+      <button id="back-to-admin-from-roles" class="ghost">กลับ</button>
     </section>
   </div>
 
