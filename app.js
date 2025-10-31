@@ -92,7 +92,7 @@ loginBtn.addEventListener("click", async () => {
     currentStudentId = id;
     adminLoggedInAs.textContent = `Admin (${id})`;
     showScreen("admin");
-    // load data for admin
+    adminScreen.classList.add("active");
     await loadAdminQuestions();
     await loadRegistrations();
     await loadAllowedStudents();
@@ -261,7 +261,7 @@ submitUserFormBtn.addEventListener("click", async () => {
     return;
   }
 
-  // หาว่ามี select ที่จำกัดจำนวนมั้ย
+  // ดูว่ามี select ที่จำกัดจำนวนมั้ย
   const limitedRoles = [];
   cachedQuestions.forEach((q) => {
     if (q.type === "select") {
@@ -277,7 +277,7 @@ submitUserFormBtn.addEventListener("click", async () => {
   });
 
   try {
-    // อัปเดต role ที่จำกัดด้วย transaction
+    // อัปเดต role limit ก่อน
     for (const roleLabel of limitedRoles) {
       const roleRef = db.collection("role_limits").doc(roleLabel);
       await db.runTransaction(async (tx) => {
@@ -293,7 +293,7 @@ submitUserFormBtn.addEventListener("click", async () => {
       });
     }
 
-    // แล้วค่อยบันทึกคำตอบ
+    // แล้วบันทึกคำตอบ
     await db.collection("registrations").add({
       studentId: currentStudentId,
       createdAt: new Date().toISOString(),
@@ -306,6 +306,7 @@ submitUserFormBtn.addEventListener("click", async () => {
   } catch (err) {
     console.error(err);
     showToast(err.message || "ส่งแบบฟอร์มไม่สำเร็จ", true);
+    // โหลดใหม่เผื่อ role เต็ม
     await loadRoleLimits();
     await loadUserForm();
   }
@@ -332,29 +333,33 @@ function renderAdminQuestions() {
     const card = document.createElement("div");
     card.className = "question-card";
 
-    // actions
+    // ===== ปุ่มมุมขวา =====
     const act = document.createElement("div");
     act.className = "question-actions";
 
     const up = document.createElement("button");
     up.className = "q-btn";
-    up.textContent = "↑";
+    up.title = "เลื่อนขึ้น";
+    up.innerHTML = "↑";
     up.addEventListener("click", () => moveQuestion(idx, -1));
     act.appendChild(up);
 
     const down = document.createElement("button");
     down.className = "q-btn";
-    down.textContent = "↓";
+    down.title = "เลื่อนลง";
+    down.innerHTML = "↓";
     down.addEventListener("click", () => moveQuestion(idx, +1));
     act.appendChild(down);
 
     const del = document.createElement("button");
-    del.className = "q-btn";
-    del.textContent = "ลบ";
+    del.className = "q-btn danger";
+    del.title = "ลบ";
+    del.innerHTML = "×";
     del.addEventListener("click", () => deleteQuestion(q.id));
     act.appendChild(del);
 
     card.appendChild(act);
+    // ===== /ปุ่มมุมขวา =====
 
     // label
     const labelInput = document.createElement("input");
@@ -363,7 +368,7 @@ function renderAdminQuestions() {
     labelInput.addEventListener("change", () => updateQuestion(q.id, { label: labelInput.value }));
     card.appendChild(labelInput);
 
-    // type + required + autoemail
+    // type + required + autoEmail
     const line = document.createElement("div");
     line.className = "row-between mt";
 
@@ -385,22 +390,15 @@ function renderAdminQuestions() {
     req.type = "checkbox";
     req.checked = !!q.required;
     req.addEventListener("change", () => updateQuestion(q.id, { required: req.checked }));
-
-    const reqLbl = document.createElement("span");
-    reqLbl.textContent = "ต้องกรอก";
+    right.appendChild(req);
+    right.appendChild(document.createTextNode(" ต้องกรอก "));
 
     const auto = document.createElement("input");
     auto.type = "checkbox";
     auto.checked = !!q.autoEmail;
     auto.addEventListener("change", () => updateQuestion(q.id, { autoEmail: auto.checked }));
-
-    const autoLbl = document.createElement("span");
-    autoLbl.textContent = "autoEmail";
-
-    right.appendChild(req);
-    right.appendChild(reqLbl);
     right.appendChild(auto);
-    right.appendChild(autoLbl);
+    right.appendChild(document.createTextNode(" autoEmail"));
 
     line.appendChild(right);
     card.appendChild(line);
@@ -411,49 +409,49 @@ function renderAdminQuestions() {
       optBox.className = "option-box";
 
       (q.options || []).forEach((opt, optIdx) => {
-        const line = document.createElement("div");
-        line.className = "option-line";
+        const ol = document.createElement("div");
+        ol.className = "option-line";
 
-        const optLabelInput = document.createElement("input");
-        optLabelInput.type = "text";
-        optLabelInput.value = opt.label;
-        optLabelInput.addEventListener("change", async () => {
-          const newOptions = [...(q.options || [])];
-          newOptions[optIdx].label = optLabelInput.value;
-          await updateQuestion(q.id, { options: newOptions });
+        const optLabel = document.createElement("input");
+        optLabel.type = "text";
+        optLabel.value = opt.label;
+        optLabel.addEventListener("change", async () => {
+          const newOpts = [...(q.options || [])];
+          newOpts[optIdx].label = optLabel.value;
+          await updateQuestion(q.id, { options: newOpts });
         });
-        line.appendChild(optLabelInput);
+        ol.appendChild(optLabel);
 
-        const maxInput = document.createElement("input");
-        maxInput.type = "number";
-        maxInput.placeholder = "max";
-        maxInput.value = opt.max || "";
-        maxInput.addEventListener("change", async () => {
-          const newOptions = [...(q.options || [])];
-          newOptions[optIdx].max = parseInt(maxInput.value) || null;
-          newOptions[optIdx].isLimited = !!maxInput.value;
-          await updateQuestion(q.id, { options: newOptions });
+        const maxIn = document.createElement("input");
+        maxIn.type = "number";
+        maxIn.placeholder = "max";
+        maxIn.value = opt.max || "";
+        maxIn.addEventListener("change", async () => {
+          const newOpts = [...(q.options || [])];
+          newOpts[optIdx].max = parseInt(maxIn.value) || null;
+          newOpts[optIdx].isLimited = !!maxIn.value;
+          await updateQuestion(q.id, { options: newOpts });
 
-          if (maxInput.value) {
+          if (maxIn.value) {
             await db.collection("role_limits").doc(opt.label).set({
               label: opt.label,
               current: 0,
-              max: parseInt(maxInput.value),
+              max: parseInt(maxIn.value),
             }, { merge: true });
             loadRoleLimits();
           }
         });
-        line.appendChild(maxInput);
+        ol.appendChild(maxIn);
 
         const limitChk = document.createElement("input");
         limitChk.type = "checkbox";
         limitChk.checked = !!opt.isLimited;
         limitChk.addEventListener("change", async () => {
-          const newOptions = [...(q.options || [])];
-          newOptions[optIdx].isLimited = limitChk.checked;
-          await updateQuestion(q.id, { options: newOptions });
+          const newOpts = [...(q.options || [])];
+          newOpts[optIdx].isLimited = limitChk.checked;
+          await updateQuestion(q.id, { options: newOpts });
           if (limitChk.checked) {
-            const defMax = newOptions[optIdx].max || 1;
+            const defMax = newOpts[optIdx].max || 1;
             await db.collection("role_limits").doc(opt.label).set({
               label: opt.label,
               current: 0,
@@ -462,30 +460,30 @@ function renderAdminQuestions() {
             loadRoleLimits();
           }
         });
-        line.appendChild(limitChk);
+        ol.appendChild(limitChk);
 
         const delOpt = document.createElement("button");
-        delOpt.textContent = "x";
         delOpt.className = "q-btn";
+        delOpt.innerHTML = "×";
         delOpt.addEventListener("click", async () => {
-          const newOptions = (q.options || []).filter((_, i) => i !== optIdx);
-          await updateQuestion(q.id, { options: newOptions });
+          const newOpts = (q.options || []).filter((_, i) => i !== optIdx);
+          await updateQuestion(q.id, { options: newOpts });
           loadAdminQuestions();
         });
-        line.appendChild(delOpt);
+        ol.appendChild(delOpt);
 
-        optBox.appendChild(line);
+        optBox.appendChild(ol);
       });
 
-      const addOpt = document.createElement("button");
-      addOpt.textContent = "+ เพิ่มตัวเลือก";
-      addOpt.className = "btn ghost sm";
-      addOpt.addEventListener("click", async () => {
-        const newOptions = [...(q.options || []), { label: "ตัวเลือกใหม่", isLimited: false }];
-        await updateQuestion(q.id, { options: newOptions });
+      const addOptBtn = document.createElement("button");
+      addOptBtn.className = "btn ghost sm";
+      addOptBtn.textContent = "+ เพิ่มตัวเลือก";
+      addOptBtn.addEventListener("click", async () => {
+        const newOpts = [...(q.options || []), { label: "ตัวเลือกใหม่", isLimited: false }];
+        await updateQuestion(q.id, { options: newOpts });
         loadAdminQuestions();
       });
-      optBox.appendChild(addOpt);
+      optBox.appendChild(addOptBtn);
 
       card.appendChild(optBox);
     }
@@ -760,7 +758,7 @@ addRoleBtn.addEventListener("click", async () => {
   }
 });
 
-// ====== 10. ADMIN TABS (fix กดไม่ได้) ======
+// ====== 10. ADMIN TABS ======
 function showAdminTab(tabId) {
   adminTabs.forEach((t) => {
     if (t.id === tabId) t.classList.add("active");
@@ -796,5 +794,5 @@ adminTabBtns.forEach((btn) => {
   });
 });
 
-// เปิดหน้าแรก
+// เปิดหน้าแรก admin ไว้เลยในกรณีเข้า admin
 showAdminTab("admin-form-screen");
