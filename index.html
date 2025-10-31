@@ -25,6 +25,10 @@
     <section id="user-form-screen" class="screen">
       <h2>แบบฟอร์มสมัคร</h2>
       <form id="dynamic-form"></form>
+
+      <!-- ⬇ ฟอร์มสาขา (ขึ้นตามคำตอบ) -->
+      <div id="branch-form-container"></div>
+
       <p id="user-form-msg" class="msg"></p>
       <button id="user-back-btn">ออกจากระบบ</button>
     </section>
@@ -57,15 +61,19 @@
           <option value="radio">Radio</option>
         </select>
 
+        <!-- editor ตัวเลือก -->
         <div id="option-editor" class="option-box" style="display:none;">
           <label>ตัวเลือก</label>
           <ul id="option-list"></ul>
           <div class="inline">
-            <input type="text" id="new-option-text" placeholder="เช่น กรรมการ" />
+            <input type="text" id="new-option-text" placeholder="เช่น ผู้จัดงาน" />
             <input type="number" id="new-option-limit" placeholder="จำกัด (เช่น 5)" min="1" />
+          </div>
+          <div class="inline">
+            <input type="text" id="new-option-target" placeholder="ฟอร์มปลายทาง เช่น organizer / player" />
             <button id="add-option-btn" type="button">เพิ่มตัวเลือก</button>
           </div>
-          <p class="muted">* ถ้าใส่จำนวน → ระบบจะนับให้และปิดเมื่อเต็ม</p>
+          <p class="muted">* ถ้าใส่ฟอร์มปลายทาง ระบบจะโหลดฟอร์มนั้นเพิ่มเมื่อผู้ใช้เลือกตัวเลือกนี้</p>
         </div>
 
         <button id="add-question-btn" type="button">บันทึกคำถาม</button>
