@@ -12,10 +12,10 @@ const db = firebase.firestore();
 
 const ADMIN_CODE = "0826940174";
 
-// ตัวแปรช่วย
-let currentOptionList = [];    // ตอน admin เพิ่ม dropdown
-let REG_CACHE = [];           // ผู้สมัครทั้งหมด
-let FORM_QUESTION_CACHE = []; // หัวตารางคำถาม
+// admin helpers
+let currentOptionList = [];    // ตัวเลือกของคำถามใหม่ (type=select)
+let REG_CACHE = [];           // เก็บผู้สมัครทั้งหมด
+let FORM_QUESTION_CACHE = []; // เก็บหัวตารางจาก form_questions
 
 /* =========================================================
    1) LOGIN PAGE (index.html)
@@ -59,24 +59,25 @@ if (logoutUserBtn) {
     window.location.href = "index.html";
   });
 
-  // render form พร้อมโควต้า
   renderUserForm();
   document.getElementById("submit-user-form").addEventListener("click", submitUserForm);
 }
 
 /**
- * ดึงคำถาม + นับโควต้าจาก registrations แล้วค่อย render เป็นฟอร์ม
+ * renderUserForm
+ * - ดึงฟอร์ม
+ * - ดึงคำตอบทั้งหมด
+ * - นับว่าแต่ละ option ถูกใช้ไปกี่ครั้ง → แสดง (ใช้ไป/โควต้า)
  */
 async function renderUserForm() {
   const wrap = document.getElementById("user-form-container");
   if (!wrap) return;
 
-  // ดึงคำถาม
   const qSnap = await db.collection("form_questions").orderBy("order", "asc").get();
 
-  // ดึงคำตอบทั้งหมด เพื่อมานับว่าแต่ละตัวเลือกถูกใช้ไปกี่ครั้ง
+  // ดึง registrations ทั้งหมดมานับ
   const regSnap = await db.collection("registrations").get();
-  const counts = {}; // counts[questionId][optionLabel] = used
+  const counts = {}; // counts[qid][optionLabel] = used
   regSnap.forEach(doc => {
     const data = doc.data();
     const ans = data.answers || {};
@@ -88,7 +89,6 @@ async function renderUserForm() {
     });
   });
 
-  // render
   wrap.innerHTML = "";
   qSnap.forEach(d => {
     const q = d.data();
@@ -126,18 +126,17 @@ async function renderUserForm() {
 }
 
 /**
- * ส่งแบบฟอร์ม (เช็กโควต้าซ้ำอีกครั้งตอน submit)
+ * ส่งแบบฟอร์ม (เช็กโควต้าซ้ำอีกครั้ง)
  */
 async function submitUserForm() {
   const uid = localStorage.getItem("studentId");
   if (!uid) return;
 
-  // ดึงคำถามล่าสุด
   const qSnap = await db.collection("form_questions").get();
   const questions = {};
   qSnap.forEach(d => questions[d.id] = d.data());
 
-  // เก็บคำตอบจากหน้าฟอร์ม
+  // เก็บคำตอบ
   const answers = {};
   document.querySelectorAll("[data-id]").forEach(el => {
     answers[el.dataset.id] = el.value;
@@ -191,19 +190,18 @@ if (logoutAdminBtn) {
     window.location.href = "index.html";
   });
 
-  // sidebar tabs
+  // สลับแท็บ
   document.querySelectorAll(".nav-item").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".nav-item").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
 
-      const target = btn.dataset.tab;
       document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-      document.getElementById(target).classList.add("active");
+      document.getElementById(btn.dataset.tab).classList.add("active");
     });
   });
 
-  // controls ของ dropdown ตอนสร้างคำถาม
+  // controls ของ dropdown
   const typeSelect = document.getElementById("new-q-type");
   const optWrap = document.getElementById("new-q-options-wrap");
   const optInput = document.getElementById("new-q-option-input");
@@ -240,7 +238,7 @@ if (logoutAdminBtn) {
 
   // โหลดข้อมูล admin
   loadQuestions();
-  loadRegistrations();  // << อันนี้จะสร้างตาราง
+  loadRegistrations();
   loadAllowed();
   loadRoles();
 
@@ -250,7 +248,7 @@ if (logoutAdminBtn) {
   document.getElementById("add-role-btn").addEventListener("click", addRole);
 }
 
-// แสดงรายการ option ที่ admin กำลังสร้าง
+/* ---------- ADMIN: แบบฟอร์ม ---------- */
 function renderOptionList(container) {
   if (!container) return;
   container.innerHTML = "";
@@ -265,7 +263,6 @@ window.removeTempOption = function(idx) {
   renderOptionList(document.getElementById("new-q-options-list"));
 };
 
-// ---------- ADMIN: Questions ----------
 async function loadQuestions() {
   const box = document.getElementById("questions-list");
   if (!box) return;
@@ -274,7 +271,7 @@ async function loadQuestions() {
   snap.forEach(d => {
     const q = d.data();
     const div = document.createElement("div");
-    div.className = "list-item question-item";
+    div.className = "list-item";
     div.innerHTML = `
       <div>
         <strong>${q.label}</strong>
@@ -324,7 +321,6 @@ async function addQuestion() {
   loadQuestions();
 }
 
-// แก้ไขคำถาม
 window.editQuestion = async function(id) {
   const doc = await db.collection("form_questions").doc(id).get();
   if (!doc.exists) return;
@@ -361,7 +357,7 @@ window.editQuestion = async function(id) {
       options: newType === "select" ? currentOptionList : []
     });
 
-    // reset btn
+    // reset
     btn.textContent = "เพิ่มคำถาม";
     btn.onclick = addQuestion;
     document.getElementById("new-q-label").value = "";
@@ -378,12 +374,12 @@ window.deleteQuestion = async function(id) {
   loadQuestions();
 };
 
-// ---------- ADMIN: Registrations (table) ----------
+/* ---------- ADMIN: ผู้สมัคร (table) ---------- */
 async function loadRegistrations() {
   const tableEl = document.getElementById("registrations-table");
   if (!tableEl) return;
 
-  // 1) โหลดคำถาม → หัวตาราง
+  // 1) โหลดคำถาม → ใช้เป็นหัวตาราง
   const qSnap = await db.collection("form_questions").orderBy("order", "asc").get();
   FORM_QUESTION_CACHE = [];
   qSnap.forEach(d => {
@@ -393,23 +389,27 @@ async function loadRegistrations() {
     });
   });
 
-  // 2) โหลดผู้สมัคร
+  // 2) โหลดผู้สมัคร (กัน createdAt.toDate error)
   const snap = await db.collection("registrations").orderBy("createdAt", "desc").get();
   REG_CACHE = [];
   snap.forEach(d => {
     const data = d.data();
+    let created = null;
+    if (data.createdAt && typeof data.createdAt.toDate === "function") {
+      created = data.createdAt.toDate();
+    }
     REG_CACHE.push({
       id: d.id,
       userId: data.userId || d.id,
       answers: data.answers || {},
-      createdAt: data.createdAt ? data.createdAt.toDate() : null
+      createdAt: created
     });
   });
 
-  // 3) render ครั้งแรก
+  // 3) แสดงตาราง
   renderRegistrationsTable(REG_CACHE);
 
-  // 4) bind ช่อง search
+  // 4) ผูก search
   const searchInput = document.getElementById("reg-search-input");
   if (searchInput && !searchInput.dataset.bound) {
     searchInput.addEventListener("input", () => {
@@ -441,14 +441,13 @@ function renderRegistrationsTable(items) {
 
   // body
   let tbodyHtml = "<tbody>";
-
   if (!items.length) {
     tbodyHtml += `<tr><td colspan="${2 + FORM_QUESTION_CACHE.length}" style="padding:.75rem;">ไม่พบข้อมูล</td></tr>`;
   } else {
     items.forEach(r => {
       tbodyHtml += `<tr>
         <td class="sticky-col">${r.userId}</td>
-        <td>${r.createdAt ? r.createdAt.toLocaleString() : ""}</td>
+        <td>${r.createdAt instanceof Date ? r.createdAt.toLocaleString() : ""}</td>
         ${FORM_QUESTION_CACHE.map(q => {
           const val = r.answers[q.id];
           if (val && typeof val === "object" && "value" in val) {
@@ -459,7 +458,6 @@ function renderRegistrationsTable(items) {
       </tr>`;
     });
   }
-
   tbodyHtml += "</tbody>";
 
   tableEl.innerHTML = theadHtml + tbodyHtml;
@@ -471,7 +469,7 @@ function renderRegistrationsTable(items) {
   }
 }
 
-// ---------- ADMIN: Allowed IDs ----------
+/* ---------- ADMIN: รหัสอนุญาต ---------- */
 async function loadAllowed() {
   const box = document.getElementById("allowed-list");
   if (!box) return;
@@ -501,7 +499,7 @@ window.removeAllowed = async function(id) {
   loadAllowed();
 };
 
-// ---------- ADMIN: Roles ----------
+/* ---------- ADMIN: Roles ---------- */
 async function loadRoles() {
   const box = document.getElementById("roles-list");
   if (!box) return;
