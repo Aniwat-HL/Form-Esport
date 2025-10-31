@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log("Firebase connected!");
 
   // ===== 2. DOM refs =====
-  const ADMIN_CODE = "0826940174";  // เปลี่ยนได้
+  const ADMIN_CODE = "0826940174"; // เปลี่ยนได้
 
   // screens
   const loginScreen = document.getElementById("login-screen");
@@ -68,15 +68,21 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentQuestions = [];
   let editingQuestionId = null;
 
-  // helper show/hide
-  const showScreen = (el) => {
-    [loginScreen, userFormScreen, adminMenuScreen, adminFormEditorScreen, adminUsersScreen, adminIdsScreen]
-      .forEach(s => s.classList.add('hidden'));
-    el.classList.remove('hidden');
-    el.classList.add('active');
-  };
+  // helper to switch screen
+  function showScreen(screenEl) {
+    [
+      loginScreen,
+      userFormScreen,
+      adminMenuScreen,
+      adminFormEditorScreen,
+      adminUsersScreen,
+      adminIdsScreen,
+    ].forEach((s) => s.classList.add("hidden"));
+    screenEl.classList.remove("hidden");
+    screenEl.classList.add("active");
+  }
 
-  // ===== 3. Login flow (ช่องเดียว) =====
+  // ===== 3. Login (ช่องเดียว) =====
   async function handleLogin() {
     const code = (loginInput.value || "").trim();
     if (!code) {
@@ -87,14 +93,14 @@ document.addEventListener('DOMContentLoaded', () => {
     loginInputGroup.classList.remove("error");
     loginMsg.textContent = "";
 
-    // 3.1 ถ้าเป็นแอดมิน
+    // 1) admin ?
     if (code === ADMIN_CODE) {
       currentStudentId = null;
       showScreen(adminMenuScreen);
       return;
     }
 
-    // 3.2 ถ้าเป็นผู้ใช้ → ต้องมีใน allowed_students
+    // 2) user → check in allowed_students
     try {
       const doc = await db.collection("allowed_students").doc(code).get();
       if (!doc.exists) {
@@ -134,7 +140,6 @@ document.addEventListener('DOMContentLoaded', () => {
       dynamicForm.innerHTML = "";
       dynamicForm.appendChild(frag);
 
-      // ปุ่มส่ง
       const submitBtn = document.createElement("button");
       submitBtn.type = "button";
       submitBtn.textContent = "ส่งแบบฟอร์ม";
@@ -224,6 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
       userFormMsg.textContent = "กรุณาเข้าสู่ระบบก่อน";
       return;
     }
+
     const answers = {};
     currentQuestions.forEach((q) => {
       if (q.type === "radio") {
@@ -354,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (type === "select" || type === "radio") {
       data.options = optionsRaw
-        ? optionsRaw.split(",").map(s => s.trim()).filter(Boolean)
+        ? optionsRaw.split(",").map((s) => s.trim()).filter(Boolean)
         : [];
     } else {
       data.options = [];
@@ -364,7 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
       await db.collection("form_questions").doc(editingQuestionId).update(data);
       adminFormMsg.textContent = "อัปเดตคำถามสำเร็จ ✅";
     } else {
-      const last = await db.collection("form_questions").orderBy("order","desc").limit(1).get();
+      const last = await db.collection("form_questions").orderBy("order", "desc").limit(1).get();
       let nextOrder = 1;
       last.forEach((doc) => {
         const d = doc.data();
@@ -375,6 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
       adminFormMsg.textContent = "เพิ่มคำถามสำเร็จ ✅";
     }
 
+    // reset
     editingQuestionId = null;
     formEditorTitle.textContent = "เพิ่มคำถามใหม่";
     addQuestionBtn.textContent = "บันทึก";
@@ -388,11 +395,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // ===== 7. Admin: users =====
   async function loadAdminUsers() {
     adminUsersList.innerHTML = "กำลังโหลด...";
+
     const qSnap = await db.collection("form_questions").orderBy("order").get();
     const qMap = {};
-    qSnap.forEach((doc) => qMap[doc.id] = doc.data());
+    qSnap.forEach((doc) => (qMap[doc.id] = doc.data()));
 
-    const snap = await db.collection("registrations").orderBy("createdAt","desc").get();
+    const snap = await db.collection("registrations").orderBy("createdAt", "desc").get();
     if (snap.empty) {
       adminUsersList.innerHTML = "<p>ยังไม่มีคนส่งแบบฟอร์ม</p>";
       return;
@@ -403,11 +411,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const d = doc.data();
       const time = d.createdAt ? d.createdAt.toDate().toLocaleString("th-TH") : "";
       const ans = d.answers || {};
-      const ansHtml = Object.keys(ans).map((qid) => {
-        const q = qMap[qid];
-        const label = q ? q.label : qid;
-        return `<div><strong>${label}</strong>: ${ans[qid]}</div>`;
-      }).join("");
+      const ansHtml = Object.keys(ans)
+        .map((qid) => {
+          const q = qMap[qid];
+          const label = q ? q.label : qid;
+          return `<div><strong>${label}</strong>: ${ans[qid]}</div>`;
+        })
+        .join("");
+
       items.push(`
         <div class="admin-item">
           <div><strong>รหัส นศ.:</strong> ${d.studentId || "-"}</div>
