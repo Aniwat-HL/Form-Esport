@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>ESport Registration (Google-Form-like)</title>
+  <title>ESport Registration (Form)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
 
@@ -17,7 +17,7 @@
     <!-- LOGIN -->
     <section id="login-screen" class="screen active">
       <h2>เข้าสู่ระบบ</h2>
-      <input type="text" id="universal-id" placeholder="รหัสนักศึกษา / รหัสแอดมิน" />
+      <input type="text" id="universal-id" placeholder="รหัสนักศึกษา หรือรหัสแอดมิน" />
       <button id="login-btn">เข้าสู่ระบบ</button>
       <p id="login-msg" class="msg"></p>
     </section>
@@ -43,6 +43,7 @@
     <!-- ADMIN: SECTIONS -->
     <section id="admin-sections-screen" class="screen">
       <h2>จัดการ Sections (เหมือน Google Form)</h2>
+
       <div id="admin-sections-list" class="list-box"></div>
 
       <h3>แก้ไข / เพิ่ม Section</h3>
@@ -52,7 +53,7 @@
 
         <h4>คำถามใน Section นี้</h4>
         <div id="questions-editor"></div>
-        <button id="add-question-btn" type="button">➕ เพิ่มคำถาม</button>
+        <button id="add-question-btn" type="button" class="add-q">➕ เพิ่มคำถาม</button>
         <p class="muted">* ถ้าเลือกประเภท Dropdown จะมีช่องเพิ่มตัวเลือก (จำกัดจำนวน + ลิงก์ไป Section อื่น)</p>
 
         <button id="save-section-btn" class="primary">💾 บันทึก Section</button>
@@ -74,7 +75,7 @@
       <button id="back-to-admin-from-users" class="ghost">กลับ</button>
     </section>
 
-    <!-- ADMIN: ALLOWED STUDENTS -->
+    <!-- ADMIN: ALLOWED STUDENT IDs -->
     <section id="admin-ids-screen" class="screen">
       <h2>จัดการรหัสนักศึกษา</h2>
       <div id="admin-ids-list" class="list-box"></div>
@@ -91,6 +92,7 @@
       <div id="admin-role-list" class="list-box"></div>
       <button id="back-to-admin-from-roles" class="ghost">กลับ</button>
     </section>
+
   </div>
 
   <script src="script.js"></script>
