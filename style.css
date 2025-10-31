@@ -20,7 +20,7 @@ body {
 }
 
 .app {
-  width: min(700px, 100%);
+  width: min(720px, 100%);
   background: var(--card);
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.08);
@@ -37,7 +37,8 @@ h1 {
   display: none;
 }
 
-input, select {
+input,
+select {
   width: 100%;
   padding: 9px 10px;
   margin-top: 6px;
@@ -117,8 +118,12 @@ button {
   margin-left: 4px;
   color: white;
 }
-.badge.player { background: #e91e63; }
-.badge.organizer { background: #00897b; }
+.badge.text {
+  background: #607d8b;
+}
+.badge.select {
+  background: #8e24aa;
+}
 
 .dynamic-field {
   margin-bottom: 12px;
