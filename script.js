@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Admin
+    // admin
     if (code === ADMIN_CODE) {
       await loadFormQuestions();
       await loadUsersForAdmin();
@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Student: check allowed
+    // student
     const allow = await db.collection("allowed_students").doc(code).get();
     if (!allow.exists) {
       loginMsg.textContent = "ยังไม่ได้รับอนุญาตให้ลงทะเบียน";
@@ -56,12 +56,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     currentStudentId = code;
-    await loadFormQuestions();   // for user too
+    await loadFormQuestions();
     await renderUserForm();
     show("user-form-screen");
   });
 
-  // ===== USER LOGOUT =====
+  // ===== USER LOGOUT / SUCCESS =====
   document.getElementById("user-logout-btn").addEventListener("click", () => {
     currentStudentId = null;
     loginInput.value = "";
@@ -77,23 +77,25 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loadFormQuestions() {
     const snap = await db.collection("form_questions").orderBy("order").get();
     if (snap.empty) {
-      // ถ้ายังไม่มีเลย ให้สร้าง default 3 คำถามตอนแรก
-      const defaults = [
-        { label: "ชื่อ - นามสกุล", type: "text" },
-        { label: "อีเมล (ใช้อีเมลมหาวิทยาลัยเท่านั้น)", type: "text", autoEmail: true },
-        { label: "บทบาทที่สมัคร", type: "select", options: [
-          { label: "ผู้จัดงาน", limit: true },
-          { label: "ผู้แข่งขัน", limit: true },
-          { label: "สตาฟ", limit: true },
-        ]}
-      ];
+      // create default
       let order = 1;
+      const defaults = [
+        { label: "ชื่อ - นามสกุล", type: "text", required: true },
+        { label: "อีเมล (ใช้อีเมลมหาวิทยาลัยเท่านั้น)", type: "text", autoEmail: true, required: true },
+        {
+          label: "บทบาทที่สมัคร",
+          type: "select",
+          required: true,
+          options: [
+            { label: "ผู้จัดงาน", limit: true, max: 5 },
+            { label: "ผู้แข่งขัน", limit: true, max: 20 },
+            { label: "สตาฟ", limit: true, max: 10 },
+          ]
+        }
+      ];
       for (const q of defaults) {
         await db.collection("form_questions").add({
-          label: q.label,
-          type: q.type,
-          options: q.options || [],
-          autoEmail: q.autoEmail || false,
+          ...q,
           order: order++
         });
       }
@@ -108,18 +110,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const wrap = document.getElementById("dynamic-user-form");
     wrap.innerHTML = "";
 
-    // โหลด role limits มาก่อน เพื่อโชว์ (current/max)
+    // load role limits
     const rlSnap = await db.collection("role_limits").get();
     roleLimitsCache = rlSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     for (const q of currentQuestions) {
       const f = document.createElement("div");
       f.className = "form-field";
-      const label = document.createElement("label");
-      label.textContent = q.label;
-      f.appendChild(label);
+      const lbl = document.createElement("label");
+      lbl.textContent = q.label + (q.required ? " *" : "");
+      f.appendChild(lbl);
 
-      // auto email จาก studentId
       if (q.autoEmail && currentStudentId) {
         const inp = document.createElement("input");
         inp.type = "email";
@@ -149,10 +150,10 @@ document.addEventListener("DOMContentLoaded", () => {
           const o = document.createElement("option");
           o.value = opt.label;
           if (opt.limit) {
-            // ถ้าตัวนี้ติด limit → หาใน role_limits
+            // check in role_limits
             const m = roleLimitsCache.find(r => r.label === opt.label);
             const cur = m ? (m.current || 0) : 0;
-            const max = m ? (m.max || 0) : (opt.max || 0);
+            const max = m ? (m.max || opt.max || 0) : (opt.max || 0);
             o.textContent = `${opt.label} (${cur}/${max || 0})`;
             if (max && cur >= max) {
               o.disabled = true;
@@ -169,12 +170,11 @@ document.addEventListener("DOMContentLoaded", () => {
       wrap.appendChild(f);
     }
 
-    // ปุ่มส่ง
     const btn = document.createElement("button");
     btn.type = "button";
     btn.id = "submit-form-btn";
-    btn.textContent = "ส่งแบบฟอร์ม";
     btn.className = "btn primary mt-1";
+    btn.textContent = "ส่งแบบฟอร์ม";
     wrap.appendChild(btn);
 
     const msg = document.createElement("p");
@@ -182,11 +182,10 @@ document.addEventListener("DOMContentLoaded", () => {
     msg.className = "msg";
     wrap.appendChild(msg);
 
-    // bind
     btn.addEventListener("click", submitUserForm);
   }
 
-  // ===== SUBMIT USER FORM (with role limit) =====
+  // ===== SUBMIT USER FORM =====
   async function submitUserForm() {
     const msg = document.getElementById("user-form-msg");
     msg.textContent = "";
@@ -196,18 +195,22 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // ดึงค่าทุก input
     const formEl = document.getElementById("dynamic-user-form");
     const answers = {};
-    let limitedRole = null;   // ชื่อตัวเลือกที่เป็น limit
+    let limitedRole = null;
 
     for (const q of currentQuestions) {
       const el = formEl.querySelector(`[name="${q.id}"]`);
       if (!el) continue;
-      const val = el.value;
+      const val = el.value.trim();
+
+      if (q.required && !val) {
+        msg.textContent = `กรุณากรอก: ${q.label}`;
+        return;
+      }
+
       answers[q.label] = val;
 
-      // ถ้าเป็น select และเป็นตัวที่มี limit
       if (q.type === "select") {
         const optConf = (q.options || []).find(o => o.label === val);
         if (optConf && optConf.limit) {
@@ -216,15 +219,17 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // ถ้าเลือกบทบาทที่จำกัด → เช็กด้วย transaction
     if (limitedRole) {
       const roleRef = db.collection("role_limits").doc(limitedRole);
       try {
         await db.runTransaction(async (tx) => {
           const snap = await tx.get(roleRef);
           if (!snap.exists) {
-            // ถ้าแอดมินเพิ่งตั้งในฟอร์มครั้งแรก
-            tx.set(roleRef, { label: limitedRole, current: 1, max: 1 });
+            // create from form option
+            const qHas = currentQuestions.find(q => (q.options || []).some(o => o.label === limitedRole));
+            const opt = qHas ? (qHas.options || []).find(o => o.label === limitedRole) : null;
+            const max = opt && opt.max ? Number(opt.max) : 1;
+            tx.set(roleRef, { label: limitedRole, current: 1, max });
           } else {
             const data = snap.data();
             const cur = data.current || 0;
@@ -245,11 +250,9 @@ document.addEventListener("DOMContentLoaded", () => {
         show("user-success-screen");
       } catch (err) {
         msg.textContent = err.message || "ส่งไม่สำเร็จ";
-        // refresh ฟอร์มให้เห็นว่าเต็มแล้ว
         await renderUserForm();
       }
     } else {
-      // ไม่มี limit → บันทึกตรงๆ
       await db.collection("registrations").add({
         studentId: currentStudentId,
         answers,
@@ -286,65 +289,66 @@ document.addEventListener("DOMContentLoaded", () => {
     currentQuestions.forEach((q, idx) => {
       const card = document.createElement("div");
       card.className = "q-card";
-
-      const head = document.createElement("div");
-      head.className = "q-card-header";
-      head.innerHTML = `
-        <input type="text" value="${q.label || ""}" data-id="${q.id}" data-field="label" />
-        <select data-id="${q.id}" data-field="type">
-          <option value="text" ${q.type === "text" ? "selected" : ""}>ข้อความสั้น</option>
-          <option value="textarea" ${q.type === "textarea" ? "selected" : ""}>ย่อหน้า</option>
-          <option value="select" ${q.type === "select" ? "selected" : ""}>ตัวเลือก (dropdown)</option>
-        </select>
-        <button class="q-del" data-del="${q.id}">ลบ</button>
+      card.innerHTML = `
+        <div class="q-card-header">
+          <input type="text" value="${q.label || ""}" data-id="${q.id}" data-field="label" />
+          <select data-id="${q.id}" data-field="type">
+            <option value="text" ${q.type === "text" ? "selected" : ""}>ข้อความสั้น</option>
+            <option value="textarea" ${q.type === "textarea" ? "selected" : ""}>ย่อหน้า</option>
+            <option value="select" ${q.type === "select" ? "selected" : ""}>ตัวเลือก (dropdown)</option>
+          </select>
+          <label class="inline-check">
+            <input type="checkbox" data-id="${q.id}" data-field="autoEmail" ${q.autoEmail ? "checked" : ""} />
+            auto-email
+          </label>
+          <label class="inline-check">
+            <input type="checkbox" data-id="${q.id}" data-field="required" ${q.required ? "checked" : ""} />
+            required
+          </label>
+          <button class="q-move" data-move-up="${q.id}">⬆</button>
+          <button class="q-move" data-move-down="${q.id}">⬇</button>
+          <button class="q-del" data-del="${q.id}">ลบ</button>
+        </div>
+        <div class="q-options" id="opts-${q.id}">
+          ${
+            q.type === "select"
+              ? (q.options || []).map((opt, oi) => `
+                <div class="option-row">
+                  <input type="text" value="${opt.label || ""}" placeholder="ชื่อตัวเลือก"
+                    data-id="${q.id}" data-opt="${oi}" data-opt-field="label" />
+                  <input type="number" value="${opt.max || ""}" placeholder="max"
+                    data-id="${q.id}" data-opt="${oi}" data-opt-field="max" />
+                  <label>
+                    <input type="checkbox"
+                      data-id="${q.id}" data-opt="${oi}" data-opt-field="limit"
+                      ${opt.limit ? "checked" : ""} />
+                    จำกัดจำนวน
+                  </label>
+                  <button class="opt-del" data-id="${q.id}" data-opt-del="${oi}">ลบ</button>
+                </div>
+              `).join("") + `<button class="add-option-btn" data-add-opt="${q.id}">+ เพิ่มตัวเลือก</button>`
+              : `<p class="tiny muted">ผู้ใช้จะกรอกเป็นข้อความ</p>`
+          }
+        </div>
       `;
-      card.appendChild(head);
-
-      // options part
-      const body = document.createElement("div");
-      body.className = "q-options";
-      if (q.type === "select") {
-        (q.options || []).forEach((opt, oi) => {
-          const row = document.createElement("div");
-          row.className = "option-row";
-          row.innerHTML = `
-            <input type="text" value="${opt.label || ""}" placeholder="ชื่อตัวเลือก"
-              data-id="${q.id}" data-opt="${oi}" data-opt-field="label" />
-            <input type="number" value="${opt.max || ""}" placeholder="max"
-              data-id="${q.id}" data-opt="${oi}" data-opt-field="max" />
-            <label>
-              <input type="checkbox" ${opt.limit ? "checked" : ""} data-id="${q.id}" data-opt="${oi}" data-opt-field="limit" />
-              จำกัด
-            </label>
-            <button class="opt-del" data-id="${q.id}" data-opt-del="${oi}">ลบ</button>
-          `;
-          body.appendChild(row);
-        });
-
-        const addBtn = document.createElement("button");
-        addBtn.type = "button";
-        addBtn.className = "add-option-btn";
-        addBtn.textContent = "+ เพิ่มตัวเลือก";
-        addBtn.dataset.addOpt = q.id;
-        body.appendChild(addBtn);
-      } else {
-        body.innerHTML = `<p class="tiny muted">ผู้ใช้จะกรอกเป็นข้อความ</p>`;
-      }
-
-      card.appendChild(body);
       box.appendChild(card);
     });
   }
 
-  // change on builder
+  // change fields
   document.getElementById("admin-form-list").addEventListener("change", async (e) => {
     const id = e.target.dataset.id;
     const field = e.target.dataset.field;
     const optField = e.target.dataset.optField;
 
-    // change label/type
+    // change label / type / autoEmail / required
     if (id && field) {
-      const val = field === "type" ? e.target.value : e.target.value;
+      let val;
+      if (field === "autoEmail" || field === "required") {
+        val = e.target.checked;
+      } else {
+        val = e.target.value;
+      }
       await db.collection("form_questions").doc(id).update({ [field]: val });
       await loadFormQuestions();
       renderAdminFormBuilder();
@@ -358,12 +362,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const opts = data.options || [];
       const oi = parseInt(e.target.dataset.opt, 10);
       if (!opts[oi]) return;
+
       if (optField === "limit") {
         opts[oi].limit = e.target.checked;
-        // ถ้าติ๊กจำกัด → สร้าง role_limits ให้เลย (ถ้ายังไม่มี)
-        if (e.target.checked) {
-          const roleDoc = await db.collection("role_limits").doc(opts[oi].label).get();
-          if (!roleDoc.exists) {
+        // create role limit if not exist
+        if (e.target.checked && opts[oi].label) {
+          const rl = await db.collection("role_limits").doc(opts[oi].label).get();
+          if (!rl.exists) {
             await db.collection("role_limits").doc(opts[oi].label).set({
               label: opts[oi].label,
               current: 0,
@@ -374,17 +379,16 @@ document.addEventListener("DOMContentLoaded", () => {
       } else if (optField === "max") {
         opts[oi].max = Number(e.target.value);
       } else {
-        // label
         opts[oi].label = e.target.value;
       }
+
       await db.collection("form_questions").doc(id).update({ options: opts });
       await loadFormQuestions();
       renderAdminFormBuilder();
-      return;
     }
   });
 
-  // click on builder (add / del option, del question)
+  // click on builder: delete q, add option, delete option, move up/down
   document.getElementById("admin-form-list").addEventListener("click", async (e) => {
     // delete question
     if (e.target.dataset.del) {
@@ -418,20 +422,79 @@ document.addEventListener("DOMContentLoaded", () => {
       await loadFormQuestions();
       renderAdminFormBuilder();
     }
+
+    // move up
+    if (e.target.dataset.moveUp) {
+      const id = e.target.dataset.moveUp;
+      await moveQuestion(id, -1);
+    }
+    // move down
+    if (e.target.dataset.moveDown) {
+      const id = e.target.dataset.moveDown;
+      await moveQuestion(id, +1);
+    }
   });
+
+  async function moveQuestion(qid, dir) {
+    // dir = -1 up, +1 down
+    const snap = await db.collection("form_questions").orderBy("order").get();
+    const arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const idx = arr.findIndex(x => x.id === qid);
+    if (idx === -1) return;
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= arr.length) return;
+
+    // swap order
+    const curOrder = arr[idx].order;
+    const newOrder = arr[newIdx].order;
+
+    const batch = db.batch();
+    batch.update(db.collection("form_questions").doc(arr[idx].id), { order: newOrder });
+    batch.update(db.collection("form_questions").doc(arr[newIdx].id), { order: curOrder });
+    await batch.commit();
+
+    await loadFormQuestions();
+    renderAdminFormBuilder();
+  }
 
   // add new question
   document.getElementById("add-question-btn").addEventListener("click", async () => {
     const label = (document.getElementById("new-q-label").value || "").trim();
     const type = document.getElementById("new-q-type").value;
+    const autoEmail = document.getElementById("new-q-autoemail").checked;
+    const required = document.getElementById("new-q-required").checked;
     if (!label) return;
+
+    const last = currentQuestions.length > 0 ? currentQuestions[currentQuestions.length - 1].order || Date.now() : Date.now();
+
     await db.collection("form_questions").add({
       label,
       type,
+      autoEmail,
+      required,
       options: [],
-      order: Date.now()
+      order: last + 1
     });
+
     document.getElementById("new-q-label").value = "";
+    document.getElementById("new-q-autoemail").checked = false;
+    document.getElementById("new-q-required").checked = false;
+
+    await loadFormQuestions();
+    renderAdminFormBuilder();
+  });
+
+  // ===== RESET FORM TO DEFAULT =====
+  document.getElementById("reset-form-btn").addEventListener("click", async () => {
+    const ok = confirm("รีเซ็ตฟอร์มกลับเป็นค่าเริ่มต้นทั้งหมด?");
+    if (!ok) return;
+
+    // ลบทั้งหมด
+    const snap = await db.collection("form_questions").get();
+    const batch = db.batch();
+    snap.docs.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+
     await loadFormQuestions();
     renderAdminFormBuilder();
   });
@@ -503,7 +566,7 @@ document.addEventListener("DOMContentLoaded", () => {
     box.innerHTML = "กำลังโหลด...";
     const snap = await db.collection("allowed_students").get();
     if (snap.empty) {
-      box.innerHTML = "<p class='muted'>ยังไม่มีรหัส</p>";
+      box.innerHTML = "<p class='muted'>ยังไม่มีรหัสที่อนุญาต</p>";
       return;
     }
     box.innerHTML = snap.docs.map(d => `
@@ -525,13 +588,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   document.getElementById("add-student-id-btn").addEventListener("click", async () => {
-    const inp = document.getElementById("new-student-id");
-    const id = (inp.value || "").trim();
+    const id = (document.getElementById("new-student-id").value || "").trim();
     if (!id) return;
     await db.collection("allowed_students").doc(id).set({
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    inp.value = "";
+    document.getElementById("new-student-id").value = "";
     await loadAllowedStudents();
   });
 
