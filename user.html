@@ -2,34 +2,43 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>แบบฟอร์มลงทะเบียนกิจกรรม</title>
+  <title>ลงทะเบียนเข้าร่วมกิจกรรม</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
 </head>
-<body class="bg-soft">
-  <header class="topbar">
-    <div>
-      <h2 class="page-title">ลงทะเบียนเข้าร่วมกิจกรรม</h2>
-      <p class="muted">กรอกข้อมูลตามที่ระบบต้องการให้ครบถ้วน</p>
-    </div>
-    <div class="top-actions">
-      <span id="logged-in-as" class="tag"></span>
-      <button id="logout-btn-user" class="btn ghost sm">ออกจากระบบ</button>
+<body class="user-bg">
+  <!-- top bar -->
+  <header class="user-topbar">
+    <div class="container-flex">
+      <div>
+        <h1 class="user-title">ลงทะเบียนเข้าร่วมกิจกรรม</h1>
+        <p class="muted small">กรอกข้อมูลตามที่ระบบต้องการให้ครบถ้วน</p>
+      </div>
+      <div class="user-right">
+        <span id="logged-in-as" class="badge-muted"></span>
+        <button id="logout-btn-user" class="btn ghost sm">ออกจากระบบ</button>
+      </div>
     </div>
   </header>
 
-  <main class="page-body">
-    <div class="card">
-      <h3 class="section-title">ข้อมูลที่ต้องกรอก</h3>
-      <div id="user-form-container" class="form-grid"></div>
-      <div class="mt-1">
-        <button id="submit-user-form" class="btn primary">ส่งแบบฟอร์ม</button>
+  <!-- content -->
+  <main class="user-main">
+    <div class="user-form-card">
+      <h2 class="card-title">ข้อมูลที่ต้องกรอก</h2>
+      <p class="muted small">* เครื่องหมายดอกจันคือข้อมูลที่จำเป็นต้องกรอก</p>
+
+      <div id="user-form-container" class="user-form-grid">
+        <!-- app.js จะใส่ฟิลด์ให้ตรงนี้ -->
       </div>
-      <div id="user-success" class="alert success mt-1 hidden">
-        ✅ ส่งข้อมูลเรียบร้อยแล้ว ขอบคุณที่เข้าร่วมกิจกรรม
+
+      <button id="submit-user-form" class="btn primary full mt-1">ส่งแบบฟอร์ม</button>
+
+      <div id="user-success" class="hidden" aria-live="polite">
+        ส่งข้อมูลเรียบร้อยแล้ว ขอบคุณที่เข้าร่วมกิจกรรม ✅ กำลังกลับไปหน้าเข้าสู่ระบบ...
       </div>
     </div>
   </main>
