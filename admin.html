@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
 </head>
@@ -36,7 +37,7 @@
     <section id="tab-form" class="tab-panel active">
       <div class="page-head">
         <h2>จัดการแบบฟอร์ม</h2>
-        <p class="muted">เพิ่ม / ลบ / แก้ไข / กำหนดโควต้าต่อคำตอบ</p>
+        <p class="muted">เพิ่ม / ลบ / แก้ไข / กำหนดโควต้าให้ตัวเลือก dropdown</p>
       </div>
 
       <div class="grid-2">
@@ -101,7 +102,13 @@
         </div>
       </div>
 
-      <div id="registrations-list" class="vertical-list"></div>
+      <div class="card" style="padding:0;">
+        <div class="table-wrap">
+          <table class="simple-table" id="registrations-table">
+            <!-- render ใน app.js -->
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- TAB: IDS -->
