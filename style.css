@@ -57,11 +57,7 @@ input:focus, select:focus, textarea:focus {
   background: rgba(15,23,42,.6);
   box-shadow: 0 0 0 3px rgba(92,138,255,.18);
 }
-label {
-  display: block;
-  margin-bottom: 4px;
-  font-weight: 500;
-}
+label { display: block; margin-bottom: 4px; font-weight: 500; }
 .muted { opacity: .7; font-size: .9rem; }
 .tiny { font-size: .75rem; }
 
@@ -102,22 +98,38 @@ label {
   gap: 10px;
   margin-top: 10px;
 }
-.admin-card,
+
+/* ===== admin form builder ===== */
 .q-card {
   background: rgba(15,23,42, .25);
   border: 1px solid rgba(255,255,255,.04);
   border-radius: 14px;
   padding: 9px 12px 12px;
+  animation: fadeIn .25s ease;
 }
 .q-card-header {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
-.q-card-header input,
-.q-card-header select { margin-bottom: 0; }
-.q-del { background: #ef4444; border: none; border-radius: 10px; padding: 4px 10px; }
-
+.q-card-header input, .q-card-header select {
+  margin-bottom: 0;
+}
+.q-del {
+  background: #ef4444;
+  border: none;
+  border-radius: 10px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.q-move {
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 10px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
 .q-options {
   margin-top: 8px;
   border-top: 1px dashed rgba(255,255,255,.1);
@@ -127,6 +139,7 @@ label {
   display: flex;
   gap: 6px;
   margin-bottom: 5px;
+  flex-wrap: wrap;
 }
 .option-row input[type="text"] { flex: 1.2; }
 .option-row input[type="number"] { width: 90px; }
@@ -150,24 +163,33 @@ label {
 }
 
 .inline { display: flex; gap: 8px; }
+.inline-check { display: flex; align-items: center; gap: 6px; }
 .search-bar { display: flex; gap: 8px; margin-top: 6px; }
 
 .center { text-align: center; }
 .success-icon { font-size: 44px; margin-bottom: 8px; }
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
 
 .fade-in { animation: fadeIn .35s ease; }
 .scale-in { animation: pop .35s ease; }
 @keyframes fadeIn { from {opacity:0; transform:translateY(4px);} to {opacity:1; transform:translateY(0);} }
 @keyframes pop { from {opacity:0; transform:scale(.97);} to {opacity:1; transform:scale(1);} }
 
-@media (max-width: 640px) {
-  .card { padding: 16px 14px 18px; }
-  .search-bar, .inline, .option-row { flex-wrap: wrap; }
-}
 .builder-box {
   margin-top: 14px;
   background: rgba(255,255,255,.02);
   border: 1px solid rgba(255,255,255,.04);
   border-radius: 14px;
   padding: 10px 12px;
+}
+
+@media (max-width: 640px) {
+  .card { padding: 16px 14px 18px; }
+  .search-bar, .inline, .option-row, .q-card-header { flex-wrap: wrap; }
 }
