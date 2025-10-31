@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // ========== 1. FIREBASE INITIALIZE ==========
+  // ===== 1. Firebase =====
   const firebaseConfig = {
     apiKey: "AIzaSyBqnVyK9BeJqMKuyYCqXzGOd1-07eEltEI",
     authDomain: "form-esport.firebaseapp.com",
@@ -10,40 +10,41 @@ document.addEventListener("DOMContentLoaded", () => {
   };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
-  console.log("✅ Firebase connected!");
+  console.log("✅ Firebase ready");
 
-  // ========== 2. GLOBAL STATE ==========
-  const ADMIN_CODE = "0826940174";
-  const LIMIT_QUESTION_LABEL = "ตำแหน่งที่อยากเป็น";
-
+  // ===== 2. State =====
+  const ADMIN_CODE = "0826940174"; // รหัสแอดมิน
   let currentStudent = null;
   let editingQuestionId = null;
-  let tempOptions = [];
+  let tempOptions = []; // เก็บตัวเลือกชั่วคราวตอนเพิ่มคำถาม
 
-  // ========== 3. DOM CACHE ==========
+  // ===== 3. DOM helper =====
   const screens = {};
   document.querySelectorAll(".screen").forEach((s) => (screens[s.id] = s));
-  const show = (id) => {
+  function show(id) {
     Object.values(screens).forEach((s) => s.classList.remove("active"));
     screens[id]?.classList.add("active");
+  }
+  const safeMsg = (el, text) => {
+    if (el) el.textContent = text;
   };
-  const safeMsg = (el, txt) => el && (el.textContent = txt);
 
-  // Elements
+  // ----- user / login elements -----
   const loginBtn = document.getElementById("login-btn");
   const loginMsg = document.getElementById("login-msg");
   const universalId = document.getElementById("universal-id");
-
   const dynamicForm = document.getElementById("dynamic-form");
   const userFormMsg = document.getElementById("user-form-msg");
   const userBackBtn = document.getElementById("user-back-btn");
 
+  // ----- admin menu -----
   const adminEditFormBtn = document.getElementById("admin-edit-form-btn");
   const adminViewUsersBtn = document.getElementById("admin-view-users-btn");
   const adminManageIdsBtn = document.getElementById("admin-manage-ids-btn");
   const adminRoleLimitsBtn = document.getElementById("admin-role-limits-btn");
   const adminLogoutBtn = document.getElementById("admin-logout-btn");
 
+  // ----- admin: form editor -----
   const adminFormList = document.getElementById("admin-form-list");
   const newQuestionLabel = document.getElementById("new-question-label");
   const newQuestionType = document.getElementById("new-question-type");
@@ -55,31 +56,45 @@ document.addEventListener("DOMContentLoaded", () => {
   const addQuestionBtn = document.getElementById("add-question-btn");
   const adminFormMsg = document.getElementById("admin-form-msg");
 
+  // ----- admin: users -----
   const adminUsersList = document.getElementById("admin-users-list");
+
+  // ----- admin: student ids -----
   const adminIdsList = document.getElementById("admin-ids-list");
   const newStudentIdInput = document.getElementById("new-student-id");
   const addStudentIdBtn = document.getElementById("add-student-id-btn");
+
+  // ----- admin: role limits -----
   const adminRoleList = document.getElementById("admin-role-list");
 
-  // Back buttons
+  // ----- admin back buttons -----
   ["1", "2", "3", "4"].forEach((n) => {
-    document
-      .getElementById(`back-to-admin-menu-${n}`)
-      ?.addEventListener("click", () => show("admin-menu-screen"));
+    const btn = document.getElementById(`back-to-admin-menu-${n}`);
+    btn?.addEventListener("click", () => show("admin-menu-screen"));
   });
 
-  // ========== 4. LOGIN ==========
+  // =========================================================
+  // 4. LOGIN FLOW
+  // =========================================================
   loginBtn?.addEventListener("click", async () => {
     const code = (universalId?.value || "").trim();
-    if (!code) return safeMsg(loginMsg, "กรุณากรอกรหัส");
+    if (!code) {
+      safeMsg(loginMsg, "กรุณากรอกรหัส");
+      return;
+    }
 
+    // แอดมิน
     if (code === ADMIN_CODE) {
       show("admin-menu-screen");
       return;
     }
 
+    // ผู้ใช้ทั่วไป → เช็ครหัสใน allowed_students
     const doc = await db.collection("allowed_students").doc(code).get();
-    if (!doc.exists) return safeMsg(loginMsg, "รหัสนี้ยังไม่ได้รับอนุญาต");
+    if (!doc.exists) {
+      safeMsg(loginMsg, "รหัสนี้ยังไม่ได้รับอนุญาต");
+      return;
+    }
 
     currentStudent = code;
     await loadUserForm();
@@ -92,16 +107,21 @@ document.addEventListener("DOMContentLoaded", () => {
     show("login-screen");
   });
 
-  // ========== 5. USER FORM ==========
+  // =========================================================
+  // 5. USER: LOAD FORM (ดึงทุกคำถาม + แสดงจำนวนใน dropdown)
+  // =========================================================
   async function loadUserForm() {
     dynamicForm.innerHTML = "กำลังโหลด...";
+
     const snap = await db.collection("form_questions").orderBy("order").get();
     const questions = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
     dynamicForm.innerHTML = "";
 
     for (const q of questions) {
       const wrap = document.createElement("div");
       wrap.className = "dynamic-field";
+
       const label = document.createElement("label");
       label.textContent = q.label;
       wrap.appendChild(label);
@@ -111,19 +131,21 @@ document.addEventListener("DOMContentLoaded", () => {
         sel.name = q.id;
 
         for (const opt of q.options || []) {
-          const o = document.createElement("option");
-          o.value = opt.label;
+          const optEl = document.createElement("option");
+          optEl.value = opt.label;
 
+          // อ่าน role_limits เพื่อนับ
           const rl = await db.collection("role_limits").doc(opt.label).get();
           if (rl.exists) {
             const { current = 0, max = 0 } = rl.data();
-            o.textContent = `${opt.label} (${current}/${max})`;
-            if (current >= max) o.disabled = true;
+            optEl.textContent = `${opt.label} (${current}/${max})`;
+            if (current >= max) optEl.disabled = true;
           } else {
-            o.textContent = opt.label;
+            optEl.textContent = opt.label;
           }
-          sel.appendChild(o);
+          sel.appendChild(optEl);
         }
+
         wrap.appendChild(sel);
       } else if (q.type === "textarea") {
         const ta = document.createElement("textarea");
@@ -139,54 +161,72 @@ document.addEventListener("DOMContentLoaded", () => {
       dynamicForm.appendChild(wrap);
     }
 
-    const submit = document.createElement("button");
-    submit.textContent = "ส่งแบบฟอร์ม";
-    submit.type = "button";
-    submit.addEventListener("click", () => submitUserForm(questions));
-    dynamicForm.appendChild(submit);
+    const submitBtn = document.createElement("button");
+    submitBtn.type = "button";
+    submitBtn.textContent = "ส่งแบบฟอร์ม";
+    submitBtn.addEventListener("click", () => submitUserForm(questions));
+    dynamicForm.appendChild(submitBtn);
   }
 
+  // =========================================================
+  // 6. USER: SUBMIT FORM (เวอร์ชันตรวจจาก role_limits เลย)
+  // =========================================================
   async function submitUserForm(questions) {
-    if (!currentStudent) return safeMsg(userFormMsg, "กรุณาเข้าสู่ระบบ");
+    if (!currentStudent) {
+      safeMsg(userFormMsg, "กรุณาเข้าสู่ระบบก่อน");
+      return;
+    }
 
+    // 1) เก็บคำตอบ
     const answers = {};
-    questions.forEach((q) => {
+    for (const q of questions) {
       const el = dynamicForm.querySelector(`[name="${q.id}"]`);
       answers[q.id] = el ? el.value : "";
-    });
+    }
 
-    const limitQ = questions.find((q) => q.label === LIMIT_QUESTION_LABEL);
-    const picked = limitQ ? answers[limitQ.id] : null;
+    // 2) หาว่าคำตอบข้อไหน "ไปชนกับ role_limits"
+    //    เราจะเช็กทีละคำตอบเลย ไม่สนชื่อคำถาม
+    let roleToUpdate = null; // {ref, current, max, label}
+    for (const q of questions) {
+      const val = answers[q.id];
+      if (!val) continue;
 
-    if (picked) {
-      const ref = db.collection("role_limits").doc(picked);
-      const snap = await ref.get();
-      if (snap.exists) {
-        const { current = 0, max = 0 } = snap.data();
-        if (current >= max)
-          return safeMsg(userFormMsg, `ตำแหน่ง "${picked}" เต็มแล้ว (${current}/${max})`);
-
-        await db.collection("registrations").add({
-          studentId: currentStudent,
-          answers,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        });
-        await ref.update({ current: current + 1 });
-        safeMsg(userFormMsg, "ส่งแบบฟอร์มเรียบร้อย ✅");
-        return loadUserForm();
+      const rlRef = db.collection("role_limits").doc(val);
+      const rlSnap = await rlRef.get();
+      if (rlSnap.exists) {
+        const { current = 0, max = 0 } = rlSnap.data();
+        if (current >= max) {
+          // เต็มแล้ว
+          safeMsg(userFormMsg, `ตำแหน่ง "${val}" เต็มแล้ว (${current}/${max})`);
+          return;
+        }
+        // ยังไม่เต็ม → เดี๋ยวค่อย +1 หลังบันทึกฟอร์ม
+        roleToUpdate = { ref: rlRef, current, max, label: val };
+        break; // เจออันเดียวพอ
       }
     }
 
+    // 3) บันทึกคำตอบ
     await db.collection("registrations").add({
       studentId: currentStudent,
       answers,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
+
+    // 4) ถ้ามี role ที่ต้องอัปเดต → อัปเดตเลย
+    if (roleToUpdate) {
+      await roleToUpdate.ref.update({
+        current: roleToUpdate.current + 1,
+      });
+    }
+
     safeMsg(userFormMsg, "ส่งแบบฟอร์มเรียบร้อย ✅");
-    loadUserForm();
+    await loadUserForm(); // โหลดใหม่เพื่อให้ dropdown อัปเดต (1/5 → 2/5)
   }
 
-  // ========== 6. ADMIN MENU ==========
+  // =========================================================
+  // 7. ADMIN MENU BUTTONS
+  // =========================================================
   adminLogoutBtn?.addEventListener("click", () => {
     universalId.value = "";
     show("login-screen");
@@ -218,7 +258,9 @@ document.addEventListener("DOMContentLoaded", () => {
     show("admin-roles-screen");
   });
 
-  // ========== 7. FORM BUILDER ==========
+  // =========================================================
+  // 8. ADMIN: FORM EDITOR
+  // =========================================================
   newQuestionType?.addEventListener("change", () => {
     const t = newQuestionType.value;
     optionEditor.style.display = ["select", "radio"].includes(t) ? "block" : "none";
@@ -236,7 +278,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderOptionList();
   });
 
-  const renderOptionList = () => {
+  function renderOptionList() {
     optionList.innerHTML = "";
     tempOptions.forEach((o, i) => {
       const li = document.createElement("li");
@@ -251,12 +293,15 @@ document.addEventListener("DOMContentLoaded", () => {
       li.appendChild(del);
       optionList.appendChild(li);
     });
-  };
+  }
 
   addQuestionBtn?.addEventListener("click", async () => {
     const label = newQuestionLabel.value.trim();
     const type = newQuestionType.value;
-    if (!label) return safeMsg(adminFormMsg, "กรุณาใส่ชื่อคำถาม");
+    if (!label) {
+      safeMsg(adminFormMsg, "กรุณาใส่ชื่อคำถาม");
+      return;
+    }
 
     const data = {
       label,
@@ -273,49 +318,60 @@ document.addEventListener("DOMContentLoaded", () => {
       safeMsg(adminFormMsg, "เพิ่มคำถามแล้ว ✅");
     }
 
-    // อัปเดต role_limits
+    // สร้าง role_limits ให้ตัวเลือกที่มี limit
     for (const o of tempOptions) {
-      if (o.limit)
+      if (o.limit) {
         await db.collection("role_limits").doc(o.label).set(
-          { label: o.label, max: o.limit, current: 0 },
+          {
+            label: o.label,
+            max: o.limit,
+            current: 0,
+          },
           { merge: true }
         );
+      }
     }
 
+    // reset form
     editingQuestionId = null;
     newQuestionLabel.value = "";
     newQuestionType.value = "text";
     optionEditor.style.display = "none";
     tempOptions = [];
     renderOptionList();
-    loadAdminFormList();
+    await loadAdminFormList();
   });
 
   async function loadAdminFormList() {
     adminFormList.innerHTML = "กำลังโหลด...";
     const snap = await db.collection("form_questions").orderBy("order").get();
-    if (snap.empty) return (adminFormList.innerHTML = "<p>ยังไม่มีคำถาม</p>");
+    if (snap.empty) {
+      adminFormList.innerHTML = "<p>ยังไม่มีคำถาม</p>";
+      return;
+    }
 
     adminFormList.innerHTML = snap.docs
       .map((d) => {
         const data = d.data();
         return `
-      <div class="box">
-        <strong>${data.label}</strong> <small>(${data.type})</small>
-        ${
-          data.options?.length
-            ? `<div>ตัวเลือก: ${data.options
-                .map((o) => (o.limit ? `${o.label} (${o.limit})` : o.label))
-                .join(", ")}</div>`
-            : ""
-        }
-        <button class="small-btn-edit" data-id="${d.id}">แก้ไข</button>
-        <button class="small-btn" data-del="${d.id}">ลบ</button>
-      </div>`;
+          <div class="box">
+            <strong>${data.label}</strong> <small>(${data.type})</small>
+            ${
+              data.options?.length
+                ? `<div>ตัวเลือก: ${data.options
+                    .map((o) => (o.limit ? `${o.label} (${o.limit})` : o.label))
+                    .join(", ")}</div>`
+                : ""
+            }
+            <button class="small-btn-edit" data-id="${d.id}">แก้ไข</button>
+            <button class="small-btn" data-del="${d.id}">ลบ</button>
+          </div>
+        `;
       })
       .join("");
 
-    adminFormList.querySelectorAll("[data-id]").forEach((btn) =>
+    // bind edit
+    adminFormList.querySelectorAll(".small-btn-edit").forEach((btn) =>
       btn.addEventListener("click", async (e) => {
         const id = e.target.dataset.id;
         const doc = await db.collection("form_questions").doc(id).get();
@@ -324,64 +380,85 @@ document.addEventListener("DOMContentLoaded", () => {
         editingQuestionId = id;
         newQuestionLabel.value = d.label;
         newQuestionType.value = d.type;
-        tempOptions = d.options || [];
+        tempOptions = Array.isArray(d.options) ? d.options.slice() : [];
         optionEditor.style.display = ["select", "radio"].includes(d.type) ? "block" : "none";
         renderOptionList();
       })
     );
 
+    // bind delete
     adminFormList.querySelectorAll("[data-del]").forEach((btn) =>
       btn.addEventListener("click", async (e) => {
-        if (!confirm("ลบคำถามนี้ไหม")) return;
-        await db.collection("form_questions").doc(e.target.dataset.del).delete();
-        loadAdminFormList();
+        const id = e.target.dataset.del;
+        if (!confirm("ลบคำถามนี้เลยไหม")) return;
+        await db.collection("form_questions").doc(id).delete();
+        await loadAdminFormList();
       })
     );
   }
 
-  // ========== 8. ADMIN VIEW USERS ==========
+  // =========================================================
+  // 9. ADMIN: ดูผู้สมัคร
+  // =========================================================
   async function loadAdminUsers() {
     adminUsersList.innerHTML = "กำลังโหลด...";
-    const qSnap = await db.collection("form_questions").get();
+    const qSnap = await db.collection("form_questions").orderBy("order").get();
     const qMap = {};
     qSnap.forEach((d) => (qMap[d.id] = d.data()));
 
     const snap = await db.collection("registrations").orderBy("createdAt", "desc").get();
-    if (snap.empty) return (adminUsersList.innerHTML = "<p>ยังไม่มีข้อมูล</p>");
+    if (snap.empty) {
+      adminUsersList.innerHTML = "<p>ยังไม่มีข้อมูล</p>";
+      return;
+    }
 
     adminUsersList.innerHTML = snap.docs
       .map((d) => {
         const data = d.data();
-        const ans = Object.entries(data.answers || {})
-          .map(([k, v]) => `<div><strong>${qMap[k]?.label || k}:</strong> ${v}</div>`)
+        const ans = data.answers || {};
+        const ansHtml = Object.keys(ans)
+          .map((qid) => `<div><strong>${qMap[qid]?.label || qid}:</strong> ${ans[qid]}</div>`)
           .join("");
         return `
-      <div class="box">
-        <div><strong>รหัส:</strong> ${data.studentId}</div>
-        <div>${data.createdAt ? data.createdAt.toDate().toLocaleString("th-TH") : ""}</div>
-        ${ans}
-      </div>`;
+          <div class="box">
+            <div><strong>รหัส นศ.:</strong> ${data.studentId}</div>
+            <div style="font-size:12px;color:#666;">${
+              data.createdAt ? data.createdAt.toDate().toLocaleString("th-TH") : ""
+            }</div>
+            ${ansHtml}
+          </div>
+        `;
       })
       .join("");
   }
 
-  // ========== 9. ALLOWED STUDENTS ==========
+  // =========================================================
+  // 10. ADMIN: จัดการรหัส นศ.
+  // =========================================================
   async function loadAllowedStudents() {
     adminIdsList.innerHTML = "กำลังโหลด...";
     const snap = await db.collection("allowed_students").get();
-    if (snap.empty) return (adminIdsList.innerHTML = "<p>ยังไม่มีรหัส</p>");
+    if (snap.empty) {
+      adminIdsList.innerHTML = "<p>ยังไม่มีรหัส</p>";
+      return;
+    }
 
     adminIdsList.innerHTML = snap.docs
       .map(
-        (d) => `<div class="box">${d.id}
-        <button class="small-btn" data-del="${d.id}">ลบ</button></div>`
+        (d) => `
+        <div class="box">
+          ${d.id}
+          <button class="small-btn" data-del="${d.id}">ลบ</button>
+        </div>
+      `
       )
       .join("");
 
     adminIdsList.querySelectorAll("[data-del]").forEach((btn) =>
       btn.addEventListener("click", async (e) => {
-        await db.collection("allowed_students").doc(e.target.dataset.del).delete();
-        loadAllowedStudents();
+        const id = e.target.dataset.del;
+        await db.collection("allowed_students").doc(id).delete();
+        await loadAllowedStudents();
       })
     );
   }
@@ -393,14 +470,19 @@ document.addEventListener("DOMContentLoaded", () => {
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
     newStudentIdInput.value = "";
-    loadAllowedStudents();
+    await loadAllowedStudents();
   });
 
-  // ========== 10. ROLE LIMITS ==========
+  // =========================================================
+  // 11. ADMIN: ROLE LIMITS
+  // =========================================================
   async function loadRoleLimits() {
     adminRoleList.innerHTML = "กำลังโหลด...";
     const snap = await db.collection("role_limits").get();
-    if (snap.empty) return (adminRoleList.innerHTML = "<p>ยังไม่มี role</p>");
+    if (snap.empty) {
+      adminRoleList.innerHTML = "<p>ยังไม่มี role จำกัด</p>";
+      return;
+    }
 
     adminRoleList.innerHTML = snap.docs
       .map((d) => {
@@ -410,30 +492,36 @@ document.addEventListener("DOMContentLoaded", () => {
           <strong>${data.label}</strong>
           <div>ปัจจุบัน: ${data.current || 0}/${data.max || 0}</div>
           <div class="inline">
-            <input type="number" value="${data.current || 0}" data-cur="${d.id}">
-            <input type="number" value="${data.max || 0}" data-max="${d.id}">
+            <input type="number" min="0" value="${data.current || 0}" data-cur="${d.id}" />
+            <input type="number" min="0" value="${data.max || 0}" data-max="${d.id}" />
             <button class="update" data-id="${d.id}">อัปเดต</button>
             <button class="small-btn" data-del="${d.id}">ลบ</button>
           </div>
-        </div>`;
+        </div>
+      `;
       })
       .join("");
 
+    // update buttons
     adminRoleList.querySelectorAll(".update").forEach((btn) =>
       btn.addEventListener("click", async (e) => {
         const id = e.target.dataset.id;
         const cur = parseInt(adminRoleList.querySelector(`[data-cur="${id}"]`).value) || 0;
         const max = parseInt(adminRoleList.querySelector(`[data-max="${id}"]`).value) || 0;
         await db.collection("role_limits").doc(id).update({ current: cur, max });
-        loadRoleLimits();
+        await loadRoleLimits();
       })
     );
 
+    // delete buttons
     adminRoleList.querySelectorAll("[data-del]").forEach((btn) =>
       btn.addEventListener("click", async (e) => {
-        await db.collection("role_limits").doc(e.target.dataset.del).delete();
-        loadRoleLimits();
+        const id = e.target.dataset.del;
+        await db.collection("role_limits").doc(id).delete();
+        await loadRoleLimits();
       })
     );
   }
+
+  // ===== END =====
 });
