@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel - ESport Form</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <aside class="admin-sidebar">
+    <div class="admin-brand">
+      <span class="admin-logo">ES</span>
+      <div>
+        <h3>Admin Panel</h3>
+        <p id="admin-logged-in-as" class="muted small"></p>
+      </div>
+    </div>
+    <nav class="admin-nav">
+      <button class="admin-tab-btn active" data-tab="form">📝 แบบฟอร์ม</button>
+      <button class="admin-tab-btn" data-tab="users">👥 ผู้สมัคร</button>
+      <button class="admin-tab-btn" data-tab="ids">✅ รหัสอนุญาต</button>
+      <button class="admin-tab-btn" data-tab="roles">📦 Role Limits</button>
+    </nav>
+    <div class="admin-bottom">
+      <button id="logout-btn-admin" class="btn ghost full">ออกจากระบบ</button>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <div id="tab-form" class="admin-tab active">
+      <h2>จัดการแบบฟอร์ม</h2>
+      <div id="questions-list" class="list-pad"></div>
+      <div class="card">
+        <label>ชื่อคำถาม</label>
+        <input id="new-q-label" type="text" placeholder="เช่น ชื่อ-นามสกุล">
+        <label>ประเภท</label>
+        <select id="new-q-type">
+          <option value="text">ข้อความสั้น</option>
+          <option value="textarea">ย่อหน้า</option>
+        </select>
+        <div class="row-between mt-1">
+          <label><input id="new-q-required" type="checkbox"> ต้องกรอก</label>
+          <label><input id="new-q-autoemail" type="checkbox"> autoEmail</label>
+        </div>
+        <button id="add-question-btn" class="btn primary full mt-1">เพิ่มคำถาม</button>
+      </div>
+    </div>
+
+    <div id="tab-users" class="admin-tab">
+      <h2>รายการผู้สมัคร</h2>
+      <div id="registrations-list" class="list-grid"></div>
+    </div>
+
+    <div id="tab-ids" class="admin-tab">
+      <h2>รหัสที่อนุญาต</h2>
+      <div class="card mb-1">
+        <input id="new-allowed-id" type="text" placeholder="กรอกรหัสนักศึกษา">
+        <button id="add-allowed-id-btn" class="btn primary">เพิ่ม</button>
+      </div>
+      <div id="allowed-list" class="list-pad"></div>
+    </div>
+
+    <div id="tab-roles" class="admin-tab">
+      <h2>Role Limits</h2>
+      <div class="card mb-1">
+        <input id="new-role-label" type="text" placeholder="เช่น ผู้จัดงาน">
+        <input id="new-role-max" type="number" placeholder="จำนวนสูงสุด">
+        <button id="add-role-btn" class="btn primary">เพิ่ม</button>
+      </div>
+      <div id="roles-list" class="list-pad"></div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
