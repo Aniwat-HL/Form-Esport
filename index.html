@@ -21,7 +21,10 @@
       <button id="user-login-btn" class="primary">เข้าสู่แบบฟอร์ม</button>
       <p id="user-login-msg" class="msg"></p>
       <hr />
-      <p class="muted">* ถ้าคุณเป็นผู้ดูแลระบบ <button id="go-admin-login" class="ghost small">เข้าสู่ส่วนแอดมิน</button></p>
+      <p class="muted">
+        * ถ้าคุณเป็นผู้ดูแลระบบ
+        <button id="go-admin-login" class="ghost small">เข้าสู่ส่วนแอดมิน</button>
+      </p>
     </section>
 
     <!-- ========== USER: หน้าแบบฟอร์ม (ดึงจาก Firestore) ========== -->
@@ -41,11 +44,11 @@
       <p><button id="back-to-user" class="ghost small">กลับไปหน้าผู้ใช้</button></p>
     </section>
 
-    <!-- ========== ADMIN: เมนูหลัก (3 หน้า) ========== -->
+    <!-- ========== ADMIN: เมนูหลัก ========== -->
     <section id="admin-menu-screen" class="hidden">
       <h2>ส่วนของแอดมิน</h2>
       <div class="admin-buttons">
-        <button id="admin-edit-form-btn" class="primary">1) แก้ไข/เพิ่มคำถามฟอร์ม</button>
+        <button id="admin-edit-form-btn" class="primary">1) แก้ไข / เพิ่มคำถามฟอร์ม</button>
         <button id="admin-view-users-btn" class="secondary">2) ตรวจสอบข้อมูลผู้ใช้งาน</button>
       </div>
       <button id="admin-logout-btn" class="ghost small">ออกจากระบบ</button>
@@ -62,7 +65,11 @@
         <option value="text">ช่องกรอกข้อความ</option>
         <option value="select">ตัวเลือก (dropdown)</option>
       </select>
-      <input type="text" id="new-question-options" placeholder="ตัวเลือก (คั่นด้วย , ) ใช้เมื่อเป็น select" />
+      <input
+        type="text"
+        id="new-question-options"
+        placeholder="ตัวเลือก (คั่นด้วย , ) ใช้เมื่อเป็น select"
+      />
       <button id="add-question-btn" class="primary">เพิ่มคำถาม</button>
       <p id="admin-form-msg" class="msg"></p>
 
