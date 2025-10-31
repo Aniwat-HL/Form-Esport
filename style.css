@@ -133,3 +133,14 @@ button {
   font-weight: 600;
   margin-bottom: 4px;
 }
+
+.del-id-btn {
+  float: right;
+  background: #e53935;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
