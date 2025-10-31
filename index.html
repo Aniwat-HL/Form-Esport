@@ -2,9 +2,10 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>สมัครแข่ง E-sport</title>
+  <title>สมัครแข่งขัน E-sport</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
+
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -13,18 +14,23 @@
   <div class="app">
     <h1>จัดการแข่งขัน E-sport</h1>
 
+    <!-- หน้าเลือกบทบาท -->
     <section id="role-screen">
-      <p id="status">กำลังเช็คจำนวน...</p>
-      <button id="btn-player" disabled>สมัครเป็นผู้แข่ง</button>
-      <button id="btn-organizer">สมัครเป็นผู้จัดงาน</button>
+      <p id="status">กำลังเช็กจำนวนผู้แข่ง...</p>
+      <div class="role-buttons">
+        <button id="btn-player" class="primary" disabled>สมัครเป็นผู้แข่ง</button>
+        <button id="btn-organizer" class="secondary">สมัครเป็นผู้จัดงาน</button>
+      </div>
     </section>
 
+    <!-- ฟอร์มกรอก -->
     <section id="form-screen" class="hidden">
-      <h2 id="form-title"></h2>
+      <h2 id="form-title">แบบฟอร์มสมัคร</h2>
+
       <form id="regForm">
         <input type="hidden" id="roleInput" name="role" />
 
-        <label>อีเมล</label>
+        <label>อีเมล (ม.อ.)</label>
         <input type="email" name="email" required />
 
         <label>รหัสนักศึกษา</label>
@@ -33,10 +39,14 @@
         <label>ชื่อ-นามสกุล</label>
         <input type="text" name="fullname" required />
 
-        <button type="submit">ส่งข้อมูล</button>
+        <label>หมายเหตุ / อาหาร</label>
+        <input type="text" name="note" />
+
+        <button type="submit" class="primary">ส่งข้อมูล</button>
         <p id="form-msg"></p>
       </form>
-      <button id="backBtn">ย้อนกลับ</button>
+
+      <button id="backBtn" class="ghost">ย้อนกลับ</button>
     </section>
   </div>
 
