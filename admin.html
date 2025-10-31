@@ -91,9 +91,17 @@
     <section id="tab-users" class="tab-panel">
       <div class="page-head">
         <h2>รายการผู้สมัคร</h2>
-        <p class="muted">ดูข้อมูลที่นักศึกษากรอกเข้ามา</p>
+        <p class="muted">ค้นหาจากรหัสนักศึกษาได้ทันที</p>
       </div>
-      <div id="registrations-list" class="grid-list"></div>
+
+      <div class="card" style="margin-bottom:.8rem;">
+        <div class="flex" style="gap:.5rem; align-items:center;">
+          <input id="reg-search-input" class="input" type="text" placeholder="ค้นหาเช่น 6530..." style="max-width:260px;">
+          <span id="reg-total-label" class="muted small"></span>
+        </div>
+      </div>
+
+      <div id="registrations-list" class="vertical-list"></div>
     </section>
 
     <!-- TAB: IDS -->
