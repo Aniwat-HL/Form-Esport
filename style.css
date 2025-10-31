@@ -96,6 +96,12 @@ body {
   min-height: 100vh;
 }
 
+/* กรอบกลางของหน้า user (เอาไปใช้คลุมทั้งหน้าใน user.html ก็ได้) */
+.page-shell {
+  width: min(1080px, 100%);
+  margin: 0 auto;
+}
+
 /* topbar */
 .user-topbar {
   background: #e8ecf2;
@@ -105,7 +111,8 @@ body {
   z-index: 50;
 }
 .container-flex {
-  max-width: 1180px;
+  /* ใช้ page-shell มาช่วยกลางจอ */
+  width: min(1080px, 100%);
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
@@ -132,9 +139,10 @@ body {
 
 /* main form shell */
 .user-main {
-  padding: 1.2rem 1rem 2.2rem;
-  max-width: 1180px;
+  /* ล็อกไม่ให้เกิน 1080 และไม่ให้ติดขอบจอใหญ่ */
+  width: min(1080px, 100%);
   margin: 0 auto;
+  padding: 1.2rem 1rem 2.2rem;
 }
 .user-form-card {
   background: #fff;
@@ -376,13 +384,15 @@ body {
 /* จอ <= 1024 */
 @media (max-width: 1024px) {
   .user-main {
+    width: 100%;
     padding: 1rem .85rem 2rem;
-  }
-  .grid-2 {
-    grid-template-columns: 1fr;
   }
   .content {
     padding: 1rem;
+  }
+  .container-flex {
+    width: 100%;
+    padding: 0;
   }
 }
 
@@ -399,10 +409,6 @@ body {
 
 /* จอ <= 768 (mobile form) */
 @media (max-width: 768px) {
-  .container-flex {
-    flex-direction: column;
-    align-items: flex-start;
-  }
   .user-form-card {
     padding: 1.05rem .85rem 1.2rem;
   }
@@ -411,6 +417,10 @@ body {
   }
   .user-main {
     padding: .75rem .6rem 2.1rem;
+  }
+  .container-flex {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 
