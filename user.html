@@ -14,29 +14,33 @@
     <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
   </head>
-  <body class="user-shell">
+  <body class="user-bg">
     <!-- top bar -->
     <header class="user-topbar">
-      <div class="user-topbar-left">
-        <h1>ลงทะเบียนเข้าร่วมกิจกรรม</h1>
-        <p>กรอกข้อมูลตามที่ระบบต้องการให้ครบถ้วน</p>
-      </div>
-      <div class="user-topbar-right">
-        <span id="logged-in-as" class="user-badge">-</span>
-        <button id="logout-btn-user" class="user-logout">ออกจากระบบ</button>
+      <div class="container-flex">
+        <div>
+          <h1 class="user-title">ลงทะเบียนเข้าร่วมกิจกรรม</h1>
+          <p class="muted small">กรอกข้อมูลตามที่ระบบต้องการให้ครบถ้วน</p>
+        </div>
+        <div class="user-right">
+          <span id="logged-in-as" class="badge-muted">-</span>
+          <button id="logout-btn-user" class="btn ghost sm">ออกจากระบบ</button>
+        </div>
       </div>
     </header>
 
     <!-- content -->
-    <main class="user-form-wrapper">
+    <main class="user-main">
       <div class="user-form-card">
-        <h2 class="user-form-title">ข้อมูลที่ต้องกรอก</h2>
-        <p class="user-form-sub">* ช่องที่มีเครื่องหมายดอกจันต้องกรอกให้ครบ</p>
+        <h2 class="card-title">ข้อมูลที่ต้องกรอก</h2>
+        <p class="muted small">* ช่องที่มีเครื่องหมายดอกจันต้องกรอกให้ครบ</p>
 
         <!-- ฟิลด์จาก Firebase จะถูก render มาวางตรงนี้ -->
-        <div id="user-form-container"></div>
+        <div id="user-form-container" class="user-form-grid"></div>
 
-        <button id="submit-user-form">ส่งแบบฟอร์ม</button>
+        <button id="submit-user-form" class="btn primary full mt-1">
+          ส่งแบบฟอร์ม
+        </button>
 
         <div id="user-success" class="hidden" aria-live="polite">
           ส่งข้อมูลเรียบร้อยแล้ว ขอบคุณที่เข้าร่วมกิจกรรม ✅ กำลังกลับไปหน้าเข้าสู่ระบบ...
