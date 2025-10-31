@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentQuestions = [];
   let editingQuestionId = null;
 
-  // helper to switch screen
+  // ===== helper: show screen =====
   function showScreen(screenEl) {
     [
       loginScreen,
@@ -270,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   adminEditFormBtn.addEventListener("click", async () => {
     editingQuestionId = null;
-    formEditorTitle.textContent = "เพิ่มคำถามใหม่";
+    formEditorTitle.textContent = "เพิ่ม/แก้ไขคำถาม";
     addQuestionBtn.textContent = "บันทึก";
     newQuestionLabel.value = "";
     newQuestionType.value = "text";
@@ -383,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // reset
     editingQuestionId = null;
-    formEditorTitle.textContent = "เพิ่มคำถามใหม่";
+    formEditorTitle.textContent = "เพิ่ม/แก้ไขคำถาม";
     addQuestionBtn.textContent = "บันทึก";
     newQuestionLabel.value = "";
     newQuestionOptions.value = "";
