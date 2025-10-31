@@ -15,7 +15,7 @@
   <div class="app">
     <h1>ESport Registration</h1>
 
-    <!-- ================== SCREEN: LOGIN ================== -->
+    <!-- ===== LOGIN ===== -->
     <section id="login-screen" class="screen active">
       <h2>เข้าสู่ระบบ</h2>
       <p>ใส่รหัสนักศึกษา ถ้าเป็นแอดมินจะเข้าส่วนแอดมินทันที</p>
@@ -24,7 +24,7 @@
       <p id="login-msg" class="msg"></p>
     </section>
 
-    <!-- ================== SCREEN: USER FORM ================== -->
+    <!-- ===== USER FORM ===== -->
     <section id="user-form-screen" class="screen">
       <h2>แบบฟอร์มสมัคร</h2>
       <form id="dynamic-form"></form>
@@ -32,16 +32,17 @@
       <button id="user-back-btn">ออกจากระบบ</button>
     </section>
 
-    <!-- ================== SCREEN: ADMIN MENU ================== -->
+    <!-- ===== ADMIN MENU ===== -->
     <section id="admin-menu-screen" class="screen">
       <h2>แดชบอร์ดแอดมิน</h2>
       <button id="admin-edit-form-btn">จัดการฟอร์ม</button>
       <button id="admin-view-users-btn">ดูคำตอบผู้ใช้</button>
       <button id="admin-manage-ids-btn">จัดการรหัส นศ.</button>
+      <!-- ถ้าจะมีหน้าจัดการ role_limits ค่อยเพิ่มปุ่มตรงนี้ -->
       <button id="admin-logout-btn">ออกจากระบบ</button>
     </section>
 
-    <!-- ================== SCREEN: ADMIN FORM EDITOR ================== -->
+    <!-- ===== ADMIN FORM EDITOR ===== -->
     <section id="admin-form-editor-screen" class="screen">
       <h2>จัดการฟอร์ม</h2>
       <div id="admin-form-list" class="list-box"></div>
@@ -61,7 +62,7 @@
           <option value="radio">ตัวเลือกแบบ radio</option>
         </select>
 
-        <!-- ตรงนี้จะโชว์เฉพาะตอนเลือก select / radio -->
+        <!-- ใช้เฉพาะ select / radio -->
         <div id="option-editor" class="option-box">
           <label>ตัวเลือก</label>
           <ul id="option-list"></ul>
@@ -79,7 +80,7 @@
       <button id="back-to-admin-menu-1">กลับ</button>
     </section>
 
-    <!-- ================== SCREEN: ADMIN USERS ================== -->
+    <!-- ===== ADMIN USERS ===== -->
     <section id="admin-users-screen" class="screen">
       <h2>ข้อมูลผู้สมัคร</h2>
       <div id="admin-users-list" class="list-box"></div>
@@ -87,7 +88,7 @@
       <button id="back-to-admin-menu-2">กลับ</button>
     </section>
 
-    <!-- ================== SCREEN: ADMIN IDS ================== -->
+    <!-- ===== ADMIN IDS ===== -->
     <section id="admin-ids-screen" class="screen">
       <h2>จัดการรหัสนักศึกษา</h2>
       <div id="admin-ids-list" class="list-box"></div>
