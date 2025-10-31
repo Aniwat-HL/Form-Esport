@@ -4,29 +4,35 @@
   <meta charset="UTF-8">
   <title>แบบฟอร์มลงทะเบียนกิจกรรม</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
 </head>
-<body>
+<body class="bg-soft">
   <header class="topbar">
     <div>
-      <h2>ลงทะเบียนเข้าร่วมกิจกรรม</h2>
-      <p class="muted">กรอกข้อมูลให้ครบถ้วนก่อนส่ง</p>
+      <h2 class="page-title">ลงทะเบียนเข้าร่วมกิจกรรม</h2>
+      <p class="muted">กรอกข้อมูลตามที่ระบบต้องการให้ครบถ้วน</p>
     </div>
-    <div class="top-right">
-      <span id="logged-in-as" class="pill"></span>
+    <div class="top-actions">
+      <span id="logged-in-as" class="tag"></span>
       <button id="logout-btn-user" class="btn ghost sm">ออกจากระบบ</button>
     </div>
   </header>
-  <div class="content-shell">
-    <div id="user-form-container" class="form-shell"></div>
-    <div class="form-footer">
-      <button id="submit-user-form" class="btn primary">ส่งแบบฟอร์ม</button>
+
+  <main class="page-body">
+    <div class="card">
+      <h3 class="section-title">ข้อมูลที่ต้องกรอก</h3>
+      <div id="user-form-container" class="form-grid"></div>
+      <div class="mt-1">
+        <button id="submit-user-form" class="btn primary">ส่งแบบฟอร์ม</button>
+      </div>
+      <div id="user-success" class="alert success mt-1 hidden">
+        ✅ ส่งข้อมูลเรียบร้อยแล้ว ขอบคุณที่เข้าร่วมกิจกรรม
+      </div>
     </div>
-    <div id="user-success" class="alert success hidden">ส่งแบบฟอร์มสำเร็จ 🎉</div>
-  </div>
+  </main>
 
   <script src="app.js"></script>
 </body>
