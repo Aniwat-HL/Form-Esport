@@ -2,68 +2,79 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>สมัครแข่งขัน E-sport</title>
+  <title>ESport Registration</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Firebase SDK -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
   <div class="app">
-    <h1>จัดการแข่งขัน E-sport</h1>
+    <h1>ESport Registration</h1>
 
-    <!-- หน้าล็อกอินด้วยรหัสนักศึกษา -->
-    <section id="login-screen">
-      <p>กรอกรหัสนักศึกษาเพื่อเข้าสู่ระบบ</p>
-      <input type="text" id="login-student-id" placeholder="กรอกรหัสนักศึกษา" />
-      <button id="login-btn" class="primary">เข้าสู่ระบบ</button>
-      <p id="login-msg"></p>
+    <!-- ========== USER: หน้าล็อกอินด้วยรหัส นศ. ========== -->
+    <section id="user-login-screen">
+      <h2>เข้าสู่ระบบสำหรับผู้สมัคร</h2>
+      <input type="text" id="user-student-id" placeholder="กรอกรหัสนักศึกษา" />
+      <button id="user-login-btn" class="primary">เข้าสู่แบบฟอร์ม</button>
+      <p id="user-login-msg" class="msg"></p>
+      <hr />
+      <p class="muted">* ถ้าคุณเป็นผู้ดูแลระบบ <button id="go-admin-login" class="ghost small">เข้าสู่ส่วนแอดมิน</button></p>
     </section>
 
-    <!-- หน้าเลือกบทบาท -->
-    <section id="role-screen" class="hidden">
-      <p id="status">กำลังเช็กจำนวนผู้แข่ง...</p>
-      <div class="role-buttons">
-        <button id="btn-player" class="primary" disabled>สมัครเป็นผู้แข่ง</button>
-        <button id="btn-organizer" class="secondary">สมัครเป็นผู้จัดงาน</button>
-      </div>
-      <button id="logout-btn" class="ghost small">ออกจากระบบ</button>
+    <!-- ========== USER: หน้าแบบฟอร์ม (ดึงจาก Firestore) ========== -->
+    <section id="user-form-screen" class="hidden">
+      <h2>กรอกแบบฟอร์ม</h2>
+      <form id="dynamic-form"></form>
+      <p id="user-form-msg" class="msg"></p>
+      <button id="user-logout-btn" class="ghost small">ออกจากระบบ</button>
     </section>
 
-    <!-- ฟอร์มกรอก -->
-    <section id="form-screen" class="hidden">
-      <h2 id="form-title">แบบฟอร์มสมัคร</h2>
-
-      <form id="regForm">
-        <input type="hidden" id="roleInput" name="role" />
-        <input type="hidden" id="currentStudentId" name="studentId" />
-
-        <label>อีเมล (ม.อ.)</label>
-        <input type="email" name="email" required />
-
-        <label>ชื่อ-นามสกุล</label>
-        <input type="text" name="fullname" required />
-
-        <label>หมายเหตุ / อาหาร</label>
-        <input type="text" name="note" />
-
-        <button type="submit" class="primary">ส่งข้อมูล</button>
-        <p id="form-msg"></p>
-      </form>
-
-      <button id="backBtn" class="ghost">ย้อนกลับ</button>
+    <!-- ========== ADMIN: หน้าล็อกอินแอดมิน ========== -->
+    <section id="admin-login-screen" class="hidden">
+      <h2>เข้าสู่ระบบแอดมิน</h2>
+      <input type="text" id="admin-code" placeholder="กรอกรหัสนักศึกษา (แอดมิน)" />
+      <button id="admin-login-btn" class="primary">เข้าสู่ส่วนแอดมิน</button>
+      <p id="admin-login-msg" class="msg"></p>
+      <p><button id="back-to-user" class="ghost small">กลับไปหน้าผู้ใช้</button></p>
     </section>
 
-    <!-- หน้าแอดมิน -->
-    <section id="admin-screen" class="hidden">
-      <h2>รายการผู้สมัครทั้งหมด</h2>
-      <p id="admin-info">แสดงรายการจาก Firestore</p>
-      <div id="admin-list" class="admin-list">
-        <!-- รายการจะถูกเติมด้วย JS -->
+    <!-- ========== ADMIN: เมนูหลัก (3 หน้า) ========== -->
+    <section id="admin-menu-screen" class="hidden">
+      <h2>ส่วนของแอดมิน</h2>
+      <div class="admin-buttons">
+        <button id="admin-edit-form-btn" class="primary">1) แก้ไข/เพิ่มคำถามฟอร์ม</button>
+        <button id="admin-view-users-btn" class="secondary">2) ตรวจสอบข้อมูลผู้ใช้งาน</button>
       </div>
       <button id="admin-logout-btn" class="ghost small">ออกจากระบบ</button>
+    </section>
+
+    <!-- ========== ADMIN: หน้าแก้ไขฟอร์ม ========== -->
+    <section id="admin-form-editor-screen" class="hidden">
+      <h2>แก้ไขฟอร์ม</h2>
+      <div id="admin-form-list"></div>
+
+      <h3>เพิ่มคำถามใหม่</h3>
+      <input type="text" id="new-question-label" placeholder="ชื่อคำถาม เช่น ชื่อ-นามสกุล" />
+      <select id="new-question-type">
+        <option value="text">ช่องกรอกข้อความ</option>
+        <option value="select">ตัวเลือก (dropdown)</option>
+      </select>
+      <input type="text" id="new-question-options" placeholder="ตัวเลือก (คั่นด้วย , ) ใช้เมื่อเป็น select" />
+      <button id="add-question-btn" class="primary">เพิ่มคำถาม</button>
+      <p id="admin-form-msg" class="msg"></p>
+
+      <button id="back-to-admin-menu-1" class="ghost small">ย้อนกลับ</button>
+    </section>
+
+    <!-- ========== ADMIN: หน้าแสดงข้อมูลผู้ใช้งาน ========== -->
+    <section id="admin-users-screen" class="hidden">
+      <h2>ข้อมูลผู้ใช้งานที่ส่งแล้ว</h2>
+      <div id="admin-users-list" class="admin-list"></div>
+      <p id="admin-users-msg" class="msg"></p>
+      <button id="back-to-admin-menu-2" class="ghost small">ย้อนกลับ</button>
     </section>
   </div>
 
