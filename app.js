@@ -85,30 +85,30 @@ function clearLocalDraft(studentId) {
    ========================================================= */
 const logoutUserBtn = document.getElementById("logout-btn-user");
 if (logoutUserBtn) {
+  // set label มุมขวา
   const sid = localStorage.getItem("studentId") || "-";
   const badge = document.getElementById("logged-in-as");
   if (badge) badge.textContent = sid;
 
   logoutUserBtn.addEventListener("click", () => {
-    // ออกจากระบบ → ล้างเฉพาะข้อมูล session
+    // ออกจากระบบ → ล้างเฉพาะ session
     localStorage.removeItem("role");
     localStorage.removeItem("studentId");
     window.location.href = "index.html";
   });
 
-  // แสดงฟอร์ม
+  // แสดงฟอร์มสำหรับ user
   renderUserForm();
   document.getElementById("submit-user-form").addEventListener("click", submitUserForm);
 }
 
 /**
  * renderUserForm()
- * - โหลดโครงฟอร์มจาก form_questions
- * - ดึงคำตอบเก่าจาก Firestore
- * - ดึง draft จาก localStorage
- * - รวมค่า: localDraft > firestoreAnswer > ""
- * - นับจำนวนคนเลือกแต่ละ option เพื่อปิดตัวที่เต็ม
- * - ❗ เวอร์ชันนี้: ถ้า option เต็มแล้ว → disabled ให้ทุกคนเลย
+ * - โหลดโครงคำถามจาก form_questions
+ * - โหลดคำตอบเก่าจาก registrations
+ * - โหลด draft จาก localStorage
+ * - นับ quota ของทุก select
+ * - ✅ ถ้าผู้ใช้คนนี้เคยเลือก option ที่มี limit และตอนนี้เต็มแล้ว → ล็อกทั้ง select ให้กดไม่ได้
  */
 async function renderUserForm() {
   const wrap = document.getElementById("user-form-container");
@@ -119,14 +119,13 @@ async function renderUserForm() {
   // 1) โหลดคำถาม
   const qSnap = await db.collection("form_questions").orderBy("order", "asc").get();
 
-  // 2) โหลดคำตอบเก่าจาก Firestore
+  // 2) โหลดคำตอบเก่าใน Firestore
   let oldAnswers = {};
   let oldDoc = await db.collection("registrations").doc(studentId).get();
-
   if (oldDoc.exists) {
     oldAnswers = oldDoc.data().answers || {};
   } else {
-    // เผื่อเคยเซฟด้วย doc id สุ่ม แต่มี field userId
+    // เคยใช้ doc id สุ่มแต่มี field userId
     const q = await db.collection("registrations")
       .where("userId", "==", studentId)
       .limit(1)
@@ -139,11 +138,11 @@ async function renderUserForm() {
   }
 
   // 3) โหลด draft ในเครื่อง
-  const localDraft = getLocalDraft(studentId); // {questionId: value}
+  const localDraft = getLocalDraft(studentId);
 
-  // 4) โหลดทั้งหมดเพื่อนับ quota dropdown
+  // 4) นับคนเลือกแต่ละ option
   const regSnap = await db.collection("registrations").get();
-  const counts = {}; // { questionId: {label: count} }
+  const counts = {}; // {questionId: {label: count}}
   regSnap.forEach(doc => {
     const data = doc.data();
     const ans = data.answers || {};
@@ -155,13 +154,13 @@ async function renderUserForm() {
     });
   });
 
-  // 5) render
+  // 5) render form
   wrap.innerHTML = "";
   qSnap.forEach(d => {
     const q = d.data();
     const qId = d.id;
 
-    // ค่าที่จะใส่ = draft > firestore
+    // ค่าสุดท้ายที่จะโชว์
     const fromDb = oldAnswers[qId] || "";
     const fromLocal = localDraft[qId] || "";
     const finalValue = fromLocal || fromDb || "";
@@ -176,27 +175,42 @@ async function renderUserForm() {
     } else if (q.type === "select") {
       const opts = Array.isArray(q.options) ? q.options : [];
       const qCounts = counts[qId] || {};
-      inputHtml = `<select data-id="${qId}" class="input-select">
+
+      // ✅ เช็กว่าค่าที่ผู้ใช้อยู่ตอนนี้ “เต็มแล้วหรือยัง”
+      let shouldLockSelect = false;
+      if (finalValue) {
+        const chosenOpt = opts.find(o => o.label === finalValue);
+        if (chosenOpt && chosenOpt.limit) {
+          const usedNow = qCounts[finalValue] || 0;
+          if (usedNow >= chosenOpt.limit) {
+            // ตัวที่ผู้ใช้อยู่ตอนนี้เต็มแล้ว → ล็อกทั้ง select
+            shouldLockSelect = true;
+          }
+        }
+      }
+
+      inputHtml = `<select data-id="${qId}" class="input-select" ${shouldLockSelect ? "disabled" : ""}>
         <option value="">-- เลือก --</option>
         ${opts.map(o => {
           const used = qCounts[o.label] || 0;
 
-          // ถ้าไม่มี limit → ปกติ
           if (!o.limit) {
+            // ไม่มี limit
             return `<option value="${o.label}" ${o.label === finalValue ? "selected" : ""}>${o.label}</option>`;
           }
 
           const full = used >= o.limit;
-          const label = full
+          const textLabel = full
             ? `${o.label} (เต็ม ${used}/${o.limit})`
             : `${o.label} (${used}/${o.limit})`;
 
-          // ❗ เวอร์ชันนี้: ถ้าเต็มแล้ว → disabled สำหรับทุกคน
-          if (full) {
-            return `<option value="${o.label}" disabled>${label}</option>`;
+          // อันที่ผู้ใช้อยู่ตอนนี้ → ให้ selected เสมอ
+          if (o.label === finalValue) {
+            return `<option value="${o.label}" selected>${textLabel}</option>`;
           }
 
-          return `<option value="${o.label}" ${o.label === finalValue ? "selected" : ""}>${label}</option>`;
+          // อันอื่น ถ้าเต็ม → ปิด
+          return `<option value="${o.label}" ${full ? "disabled" : ""}>${textLabel}</option>`;
         }).join("")}
       </select>`;
     } else {
@@ -216,7 +230,7 @@ async function renderUserForm() {
     `;
   });
 
-  // 6) ผูก event เพื่อเซฟ draft ทันทีที่กรอก
+  // 6) ผูก event เก็บ draft
   wrap.querySelectorAll("[data-id]").forEach(el => {
     el.addEventListener("input", () => {
       const qid = el.dataset.id;
@@ -229,11 +243,10 @@ async function renderUserForm() {
 
 /**
  * submitUserForm()
- * - validate ช่องที่มี *
- * - เช็ก quota ของ select อีกครั้ง (กันกดพร้อมกัน)
+ * - validate
+ * - เช็ก quota อีกรอบ
  * - บันทึก
  * - ลบ draft
- * - กลับหน้า login
  */
 async function submitUserForm() {
   const uid = localStorage.getItem("studentId");
@@ -246,12 +259,12 @@ async function submitUserForm() {
   btn.textContent = "กำลังตรวจสอบ...";
 
   try {
-    // โหลดคำถามมาเช็ก required / quota
+    // โหลดคำถาม
     const qSnap = await db.collection("form_questions").get();
     const questions = {};
     qSnap.forEach(d => questions[d.id] = d.data());
 
-    // เก็บคำตอบ + เช็ก required
+    // เก็บคำตอบ
     const answers = {};
     const missing = [];
     document.querySelectorAll("[data-id]").forEach(el => {
@@ -265,6 +278,7 @@ async function submitUserForm() {
       } else {
         el.classList.remove("input-error");
       }
+
       answers[qid] = val;
     });
 
@@ -275,7 +289,7 @@ async function submitUserForm() {
       return;
     }
 
-    // เช็ก quota อีกครั้งตอนกดส่ง
+    // เช็ก quota จริงอีกรอบ
     for (const qId in answers) {
       const q = questions[qId];
       if (!q) continue;
@@ -283,6 +297,7 @@ async function submitUserForm() {
 
       const userChoice = answers[qId];
       if (!userChoice) continue;
+
       const opt = q.options.find(o => o.label === userChoice);
       if (!opt || !opt.limit) continue;
 
@@ -311,7 +326,7 @@ async function submitUserForm() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    // ลบ draft ของคนนี้
+    // ลบ draft
     clearLocalDraft(uid);
 
     // แจ้งสำเร็จ
@@ -362,7 +377,7 @@ if (logoutAdminBtn) {
     });
   });
 
-  // controls
+  // control ส่วนเพิ่มคำถามใหม่
   const typeSelect = document.getElementById("new-q-type");
   const optWrap = document.getElementById("new-q-options-wrap");
   const optInput = document.getElementById("new-q-option-input");
@@ -397,7 +412,7 @@ if (logoutAdminBtn) {
     });
   }
 
-  // โหลดข้อมูล admin
+  // โหลดข้อมูลต่างๆ
   loadQuestions();
   loadRegistrations();
   loadAllowed();
@@ -424,6 +439,7 @@ window.removeTempOption = function (idx) {
   renderOptionList(document.getElementById("new-q-options-list"));
 };
 
+/* ===== admin: คำถาม ===== */
 async function loadQuestions() {
   const box = document.getElementById("questions-list");
   if (!box) return;
@@ -454,6 +470,7 @@ async function addQuestion() {
   const autoEmail = document.getElementById("new-q-autoemail").checked;
   if (!label) return alert("กรอกชื่อคำถามก่อน");
 
+  // หา order ล่าสุด
   const last = await db.collection("form_questions").orderBy("order", "desc").limit(1).get();
   let nextOrder = 1;
   last.forEach(d => {
@@ -469,7 +486,7 @@ async function addQuestion() {
     order: nextOrder
   });
 
-  // reset
+  // reset form add
   document.getElementById("new-q-label").value = "";
   document.getElementById("new-q-required").checked = false;
   document.getElementById("new-q-autoemail").checked = false;
@@ -517,6 +534,7 @@ window.editQuestion = async function (id) {
       options: newType === "select" ? currentOptionList : []
     });
 
+    // reset ปุ่ม
     btn.textContent = "เพิ่มคำถาม";
     btn.onclick = addQuestion;
     document.getElementById("new-q-label").value = "";
@@ -533,10 +551,12 @@ window.deleteQuestion = async function (id) {
   loadQuestions();
 };
 
+/* ===== admin: รายการผู้สมัคร ===== */
 async function loadRegistrations() {
   const tableEl = document.getElementById("registrations-table");
   if (!tableEl) return;
 
+  // โหลดหัวตาราง
   const qSnap = await db.collection("form_questions").orderBy("order", "asc").get();
   FORM_QUESTION_CACHE = [];
   qSnap.forEach(d => {
@@ -546,6 +566,7 @@ async function loadRegistrations() {
     });
   });
 
+  // โหลดข้อมูลผู้สมัคร
   const snap = await db.collection("registrations").orderBy("createdAt", "desc").get();
   REG_CACHE = [];
   snap.forEach(d => {
@@ -564,6 +585,7 @@ async function loadRegistrations() {
 
   renderRegistrationsTable(REG_CACHE);
 
+  // search
   const searchInput = document.getElementById("reg-search-input");
   if (searchInput && !searchInput.dataset.bound) {
     searchInput.addEventListener("input", () => {
@@ -636,6 +658,7 @@ window.deleteRegistration = async function (regId) {
   }
 };
 
+/* ===== admin: allowed students ===== */
 async function loadAllowed() {
   const box = document.getElementById("allowed-list");
   if (!box) return;
@@ -665,16 +688,19 @@ window.removeAllowed = async function (id) {
   loadAllowed();
 };
 
+/* ===== admin: roles ===== */
 async function loadRoles() {
   const box = document.getElementById("roles-list");
   if (!box) return;
   try {
     const snap = await db.collection("roles").get();
+
     box.innerHTML = "";
     if (snap.empty) {
       box.innerHTML = `<div class="muted small" style="padding:.5rem 0;">ยังไม่มี Role ในระบบ</div>`;
       return;
     }
+
     snap.forEach(d => {
       const r = d.data();
       const div = document.createElement("div");
