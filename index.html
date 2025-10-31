@@ -1,185 +1,28 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8" />
-  <title>ESport Registration</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
-
-  <!-- Firebase -->
+  <meta charset="UTF-8">
+  <title>เข้าสู่ระบบกิจกรรม</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
   <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
 </head>
-<body>
-  <!-- Toast -->
-  <div id="toast" class="toast hidden"></div>
-
-  <!-- ==================== LOGIN SCREEN ==================== -->
-  <section id="login-screen" class="screen active">
-    <div class="login-wrapper">
-      <div class="login-card glass">
-        <div class="login-head">
-          <div class="logo-circle">ES</div>
-          <div>
-            <h1 class="app-title">ระบบลงทะเบียนกิจกรรม</h1>
-            <p class="app-sub">PSU Phuket</p>
-          </div>
-        </div>
-        <p class="muted mt-1">กรอกรหัสนักศึกษา หรือรหัสแอดมิน</p>
-        <div class="field">
-          <label for="student-id-input">รหัส</label>
-          <input id="student-id-input" type="text" placeholder="เช่น 6530611018 หรือ 0826940174" />
-        </div>
-        <button id="login-btn" class="btn primary full mt-1">เข้าสู่ระบบ</button>
-        <p class="hint mt-1">
-          หากขึ้นว่า “ยังไม่ได้รับอนุญาต” ให้แอดมินเพิ่มใน <strong>allowed_students</strong>
-        </p>
-      </div>
-
-      <div class="login-side">
-        <h2>ตอนนี้ทำอะไรได้บ้าง</h2>
-        <ul class="feature-list">
-          <li>ตรวจสอบสิทธิ์ Student / Admin จากรหัสเดียว</li>
-          <li>หน้าผู้ใช้แบบฟอร์มอัตโนมัติ</li>
-          <li>แอดมินจัดการคำถาม / ผู้สมัคร / รหัสอนุญาต</li>
-          <li>ดีไซน์สไตล์ glass + gradient</li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==================== USER FORM SCREEN ==================== -->
-  <section id="user-form-screen" class="screen">
-    <header class="topbar">
+<body class="center-screen">
+  <div class="login-card">
+    <div class="login-head">
+      <div class="logo-circle">ES</div>
       <div>
-        <h2>ลงทะเบียนเข้าร่วมกิจกรรม</h2>
-        <p class="muted">กรอกข้อมูลให้ครบถ้วนก่อนส่ง</p>
+        <h1>ระบบลงทะเบียนกิจกรรม</h1>
+        <p class="muted">PSU Phuket</p>
       </div>
-      <div class="top-right">
-        <span id="logged-in-as" class="pill"></span>
-        <button id="logout-btn-user" class="btn ghost sm">ออกจากระบบ</button>
-      </div>
-    </header>
-    <div class="content-shell">
-      <div id="user-form-container" class="form-shell">
-        <!-- ฟอร์มจะถูกสร้างจาก JS -->
-      </div>
-      <div class="form-footer">
-        <button id="submit-user-form" class="btn primary">ส่งแบบฟอร์ม</button>
-      </div>
-      <div id="user-success" class="alert success hidden">ส่งแบบฟอร์มสำเร็จ 🎉</div>
     </div>
-  </section>
-
-  <!-- ==================== ADMIN SCREEN ==================== -->
-  <section id="admin-screen" class="screen admin-root">
-    <!-- Sidebar -->
-    <aside class="admin-sidebar">
-      <div class="admin-brand">
-        <span class="admin-logo">ES</span>
-        <div>
-          <h3>Admin Panel</h3>
-          <p id="admin-logged-in-as" class="muted small"></p>
-        </div>
-      </div>
-      <nav class="admin-nav">
-        <button class="admin-tab-btn active" data-tab="admin-form-screen">
-          <span>📝</span> แบบฟอร์ม
-        </button>
-        <button class="admin-tab-btn" data-tab="admin-users-screen">
-          <span>👥</span> ผู้สมัคร
-        </button>
-        <button class="admin-tab-btn" data-tab="admin-ids-screen">
-          <span>✅</span> รหัสอนุญาต
-        </button>
-        <button class="admin-tab-btn" data-tab="admin-roles-screen">
-          <span>📦</span> Role Limits
-        </button>
-      </nav>
-      <div class="admin-bottom">
-        <button id="logout-btn-admin" class="btn ghost full">ออกจากระบบ</button>
-      </div>
-    </aside>
-
-    <!-- Main -->
-    <main class="admin-main">
-      <header class="admin-top">
-        <div>
-          <h2 id="admin-page-title">จัดการแบบฟอร์ม</h2>
-          <p class="muted">เพิ่ม / ลบ / แก้ไข คำถามได้จากที่นี่</p>
-        </div>
-      </header>
-
-      <div class="admin-content">
-        <!-- TAB: FORM -->
-        <div id="admin-form-screen" class="admin-tab active">
-          <div class="two-col">
-            <div>
-              <h3 class="section-title">รายการคำถาม</h3>
-              <div id="questions-list" class="list-pad">
-                <!-- loaded from js -->
-              </div>
-            </div>
-            <div>
-              <h3 class="section-title">เพิ่มคำถามใหม่</h3>
-              <div class="card glass">
-                <label>ชื่อคำถาม</label>
-                <input id="new-q-label" type="text" placeholder="เช่น ชื่อ-นามสกุล" />
-                <label class="mt-1">ประเภท</label>
-                <select id="new-q-type">
-                  <option value="text">ข้อความสั้น</option>
-                  <option value="textarea">ย่อหน้า</option>
-                  <option value="select">Dropdown</option>
-                </select>
-                <div class="row-between mt-1">
-                  <label class="inline"><input id="new-q-required" type="checkbox" /> ต้องกรอก</label>
-                  <label class="inline"><input id="new-q-autoemail" type="checkbox" /> autoEmail</label>
-                </div>
-                <button id="add-question-btn" class="btn primary full mt-1">เพิ่มคำถาม</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- TAB: USERS -->
-        <div id="admin-users-screen" class="admin-tab">
-          <div class="card glass mb-1">
-            <label>ค้นหาด้วยรหัสนักศึกษา</label>
-            <input id="search-stdid" type="text" placeholder="6530..." />
-          </div>
-          <div id="registrations-list" class="list-grid"></div>
-        </div>
-
-        <!-- TAB: ALLOWED IDS -->
-        <div id="admin-ids-screen" class="admin-tab">
-          <div class="card glass mb-1">
-            <h3>เพิ่มรหัสที่อนุญาต</h3>
-            <div class="row">
-              <input id="new-allowed-id" type="text" placeholder="กรอกรหัสนักศึกษา" />
-              <button id="add-allowed-id-btn" class="btn primary">เพิ่ม</button>
-            </div>
-          </div>
-          <div id="allowed-list" class="list-pad"></div>
-        </div>
-
-        <!-- TAB: ROLES -->
-        <div id="admin-roles-screen" class="admin-tab">
-          <div class="card glass mb-1">
-            <h3>เพิ่มบทบาทใหม่</h3>
-            <div class="row">
-              <input id="new-role-label" type="text" placeholder="เช่น ผู้จัดงาน" />
-              <input id="new-role-max" type="number" placeholder="จำนวนสูงสุด" />
-              <button id="add-role-btn" class="btn primary">เพิ่ม</button>
-            </div>
-          </div>
-          <div id="roles-list" class="list-pad"></div>
-        </div>
-      </div>
-    </main>
-  </section>
+    <p class="muted mt-1">กรอกรหัสนักศึกษา หรือรหัสแอดมิน</p>
+    <input id="student-id-input" type="text" placeholder="เช่น 6530611018 หรือ 0826940174">
+    <button id="login-btn" class="btn primary full mt-1">เข้าสู่ระบบ</button>
+    <p class="hint">หากขึ้นว่า “ยังไม่ได้รับอนุญาต” ให้เพิ่มใน allowed_students</p>
+  </div>
 
   <script src="app.js"></script>
 </body>
