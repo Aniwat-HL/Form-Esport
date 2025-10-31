@@ -3,127 +3,137 @@
 <head>
   <meta charset="UTF-8" />
   <title>ESport Registration</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="style.css" />
-
   <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
-  <div class="bg-grad"></div>
-  <div class="app shell fade-in">
-    <header class="topbar">
-      <h1 class="logo">ESport Registration</h1>
-      <p class="subtitle">ระบบลงทะเบียนการแข่งขัน E-Sport</p>
-    </header>
+  <div id="app">
+    <!-- ========== TOAST / ERROR BAR ========== -->
+    <div id="toast" class="toast hidden"></div>
 
-    <!-- LOGIN -->
-    <section id="login-screen" class="screen active card scale-in">
-      <h2>เข้าสู่ระบบ</h2>
-      <p class="muted">กรอกรหัสนักศึกษา หรือรหัสแอดมิน</p>
-      <input type="text" id="universal-id" placeholder="เช่น 6530611018" />
-      <button id="login-btn" class="btn primary w-100">เข้าสู่ระบบ</button>
-      <p id="login-msg" class="msg"></p>
-    </section>
-
-    <!-- USER FORM (dynamic) -->
-    <section id="user-form-screen" class="screen card">
-      <h2>แบบฟอร์มสมัคร</h2>
-      <p class="muted">กรุณากรอกข้อมูลให้ครบ</p>
-      <form id="dynamic-user-form"></form>
-      <p id="user-form-msg" class="msg"></p>
-      <button id="user-logout-btn" class="btn ghost mt-2">ออกจากระบบ</button>
-    </section>
-
-    <!-- USER SUCCESS -->
-    <section id="user-success-screen" class="screen card center">
-      <div class="success-icon">✅</div>
-      <h2>ส่งแบบฟอร์มเรียบร้อย</h2>
-      <p class="muted">ขอบคุณที่ลงทะเบียน</p>
-      <button id="success-logout-btn" class="btn ghost">กลับไปหน้าเข้าสู่ระบบ</button>
-    </section>
-
-    <!-- ADMIN MENU -->
-    <section id="admin-menu-screen" class="screen card">
-      <h2>แดชบอร์ดแอดมิน</h2>
-      <div class="admin-btns">
-        <button id="admin-form-builder-btn" class="btn primary w-100">📝 จัดการแบบฟอร์ม</button>
-        <button id="admin-view-users-btn" class="btn secondary w-100">📋 ดูข้อมูลผู้สมัคร</button>
-        <button id="admin-manage-ids-btn" class="btn secondary w-100">🧑‍🎓 จัดการรหัสนักศึกษา</button>
-        <button id="admin-role-limits-btn" class="btn secondary w-100">📊 จัดการจำนวนบทบาท</button>
+    <!-- ========== LOGIN SCREEN (หน้าเดียวเช็คทั้ง admin / student) ========== -->
+    <section id="login-screen" class="screen active">
+      <div class="card login-card">
+        <h1 class="title">ระบบลงทะเบียนกิจกรรม</h1>
+        <p class="subtitle">กรอกรหัสนักศึกษาเพื่อเข้าใช้งาน</p>
+        <input id="student-id-input" type="text" placeholder="เช่น 6530611018 หรือ 0826940174 (admin)" />
+        <button id="login-btn" class="btn primary">เข้าสู่ระบบ</button>
+        <p class="hint">ถ้ายังไม่ได้รับอนุญาต จะขึ้นแจ้งเตือน</p>
       </div>
-      <button id="admin-logout-btn" class="btn ghost mt-2">ออกจากระบบ</button>
     </section>
 
-    <!-- ADMIN: FORM BUILDER -->
-    <section id="admin-form-screen" class="screen card">
-      <div class="flex-between">
-        <h2>จัดการแบบฟอร์ม</h2>
-        <button id="reset-form-btn" class="btn ghost small">รีเซ็ตเป็นค่าเริ่มต้น</button>
+    <!-- ========== USER FORM SCREEN (ฟอร์มที่แอดมินออกแบบ) ========== -->
+    <section id="user-form-screen" class="screen">
+      <header class="topbar">
+        <h2>แบบฟอร์มลงทะเบียน</h2>
+        <div>
+          <span id="logged-in-as"></span>
+          <button id="logout-btn-user" class="btn ghost">ออกจากระบบ</button>
+        </div>
+      </header>
+      <div id="user-form-container" class="form-container">
+        <!-- จะถูกสร้างด้วย JS จาก collection form_questions -->
       </div>
-      <p class="muted">เพิ่ม / ลบ / แก้ไข คำถามและตัวเลือกได้ทั้งหมด</p>
-      <div id="admin-form-list" class="list-box"></div>
-
-      <div class="builder-box">
-        <h3>เพิ่มคำถามใหม่</h3>
-        <input type="text" id="new-q-label" placeholder="ชื่อคำถาม เช่น ชื่อ - นามสกุล" />
-        <select id="new-q-type">
-          <option value="text">ข้อความสั้น</option>
-          <option value="textarea">ย่อหน้า</option>
-          <option value="select">ตัวเลือก (dropdown)</option>
-        </select>
-        <label class="inline-check mt-1">
-          <input type="checkbox" id="new-q-autoemail" />
-          ใช้เป็นอีเมล PSU อัตโนมัติ
-        </label>
-        <label class="inline-check mt-1">
-          <input type="checkbox" id="new-q-required" />
-          ต้องกรอก
-        </label>
-        <button id="add-question-btn" class="btn small primary mt-1">เพิ่มคำถาม</button>
+      <div class="form-actions">
+        <button id="submit-user-form" class="btn primary">ส่งแบบฟอร์ม</button>
       </div>
-
-      <button id="back-to-admin-from-form" class="btn ghost mt-2">กลับ</button>
+      <div id="user-success" class="success-box hidden">
+        ส่งแบบฟอร์มสำเร็จ 🎉
+      </div>
     </section>
 
-    <!-- ADMIN: USERS -->
-    <section id="admin-users-screen" class="screen card">
-      <h2>ข้อมูลผู้สมัคร</h2>
-      <div class="search-bar">
-        <input type="text" id="user-search-input" placeholder="ค้นหาด้วยรหัสนักศึกษา" />
-        <button id="user-search-btn" class="btn small">ค้นหา</button>
-        <button id="user-search-clear-btn" class="btn ghost small">ล้าง</button>
-      </div>
-      <div id="admin-users-list" class="list-box"></div>
-      <button id="back-to-admin-from-users" class="btn ghost mt-2">กลับ</button>
-    </section>
+    <!-- ========== ADMIN DASHBOARD WRAPPER ========== -->
+    <section id="admin-screen" class="screen">
+      <header class="topbar">
+        <h2>โหมดแอดมิน</h2>
+        <div>
+          <span id="admin-logged-in-as"></span>
+          <button id="logout-btn-admin" class="btn ghost">ออกจากระบบ</button>
+        </div>
+      </header>
 
-    <!-- ADMIN: IDS -->
-    <section id="admin-ids-screen" class="screen card">
-      <h2>จัดการรหัสนักศึกษา</h2>
-      <div id="admin-ids-list" class="list-box"></div>
-      <div class="inline mt-1">
-        <input type="text" id="new-student-id" placeholder="เพิ่มรหัสนักศึกษา" />
-        <button id="add-student-id-btn" class="btn small primary">เพิ่ม</button>
-      </div>
-      <button id="back-to-admin-from-ids" class="btn ghost mt-2">กลับ</button>
-    </section>
+      <div class="admin-layout">
+        <!-- ========== ADMIN MENU ========== -->
+        <nav class="admin-menu">
+          <button class="admin-tab-btn active" data-tab="admin-form-screen">📝 จัดการแบบฟอร์ม</button>
+          <button class="admin-tab-btn" data-tab="admin-users-screen">👥 ผู้สมัคร</button>
+          <button class="admin-tab-btn" data-tab="admin-ids-screen">✅ อนุญาตเข้า</button>
+          <button class="admin-tab-btn" data-tab="admin-roles-screen">📦 Role Limits</button>
+        </nav>
 
-    <!-- ADMIN: ROLE LIMITS -->
-    <section id="admin-roles-screen" class="screen card">
-      <h2>จัดการจำนวนบทบาท</h2>
-      <p class="muted">บทบาทจะถูกเพิ่มอัตโนมัติเมื่อแอดมินติ๊ก “จำกัดจำนวน” ในตัวเลือก</p>
-      <div id="admin-role-list" class="list-box"></div>
-      <div class="inline mt-1">
-        <input type="text" id="new-role-label" placeholder="เพิ่มชื่อบทบาท" />
-        <input type="number" id="new-role-max" placeholder="จำนวนสูงสุด" />
-        <button id="add-role-btn" class="btn small primary">เพิ่มบทบาท</button>
+        <!-- ========== ADMIN CONTENT ========== -->
+        <div class="admin-content">
+          <!-- 5) แอดมินจัดการฟอร์ม -->
+          <div id="admin-form-screen" class="admin-tab active">
+            <h3>จัดการแบบฟอร์ม</h3>
+            <p class="sub">แอดมินเพิ่ม/แก้ไข/ลบได้ทั้งหมด</p>
+
+            <div id="questions-list" class="list">
+              <!-- สร้างด้วย JS จาก form_questions -->
+            </div>
+
+            <div class="add-question-box">
+              <h4>เพิ่มคำถามใหม่</h4>
+              <input id="new-q-label" type="text" placeholder="ชื่อคำถาม / label" />
+              <select id="new-q-type">
+                <option value="text">ข้อความสั้น</option>
+                <option value="textarea">ย่อหน้า</option>
+                <option value="select">Dropdown</option>
+              </select>
+              <label>
+                <input id="new-q-required" type="checkbox" />
+                ต้องกรอก
+              </label>
+              <label>
+                <input id="new-q-autoemail" type="checkbox" />
+                autoEmail (เติม PSU อัตโนมัติ)
+              </label>
+              <button id="add-question-btn" class="btn primary">เพิ่มคำถาม</button>
+            </div>
+          </div>
+
+          <!-- 6) แอดมินดูข้อมูลผู้สมัคร -->
+          <div id="admin-users-screen" class="admin-tab">
+            <h3>ผู้สมัครทั้งหมด</h3>
+            <input id="search-stdid" type="text" placeholder="ค้นหาด้วยรหัสนักศึกษา..." />
+            <div id="registrations-list" class="list">
+              <!-- สร้างจาก registrations -->
+            </div>
+          </div>
+
+          <!-- 7) แอดมินจัดการ allowed_students -->
+          <div id="admin-ids-screen" class="admin-tab">
+            <h3>รหัสที่อนุญาตให้เข้าได้</h3>
+            <div class="flex-row gap">
+              <input id="new-allowed-id" type="text" placeholder="เพิ่มรหัสนักศึกษา" />
+              <button id="add-allowed-id-btn" class="btn primary">เพิ่ม</button>
+            </div>
+            <div id="allowed-list" class="list mt-2">
+              <!-- โหลดจาก allowed_students -->
+            </div>
+          </div>
+
+          <!-- 8) แอดมินจัดการ role_limits -->
+          <div id="admin-roles-screen" class="admin-tab">
+            <h3>Role Limits</h3>
+            <p class="sub">ใช้คู่กับ dropdown ที่ติ๊ก “จำกัดจำนวน”</p>
+            <div class="flex-row gap">
+              <input id="new-role-label" type="text" placeholder="เช่น ผู้จัดงาน" />
+              <input id="new-role-max" type="number" placeholder="max" />
+              <button id="add-role-btn" class="btn primary">เพิ่มบทบาท</button>
+            </div>
+            <div id="roles-list" class="list mt-2">
+              <!-- โหลดจาก role_limits -->
+            </div>
+          </div>
+        </div>
       </div>
-      <button id="back-to-admin-from-roles" class="btn ghost mt-2">กลับ</button>
     </section>
   </div>
 
-  <script src="script.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
