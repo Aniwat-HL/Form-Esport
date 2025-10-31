@@ -26,7 +26,7 @@ body {
   overflow-x: hidden;
 }
 
-/* background */
+/* background blobs */
 .bg-circles,
 .bg-circles.second {
   position: fixed;
@@ -113,7 +113,7 @@ body {
   color: var(--muted);
 }
 
-/* inputs */
+/* floating inputs (ใช้เฉพาะหน้า login) */
 .input-group {
   position: relative;
   display: flex;
@@ -159,6 +159,59 @@ body {
 }
 .input-group.error {
   border-color: #ef4444;
+}
+
+/* normal form surface */
+.form-surface {
+  background: rgba(255,255,255,0.8);
+  border: 1px solid rgba(148,163,184,0.35);
+  border-radius: 18px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ==== admin editor fields (fixed) ==== */
+.admin-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.field label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+.field input,
+.field select,
+.field textarea {
+  border: 1px solid rgba(148,163,184,0.45);
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-size: 0.85rem;
+  outline: none;
+  background: #fff;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: #5b6cff;
+  box-shadow: 0 0 0 3px rgba(91,108,255,0.08);
+}
+.field .help-text {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+code {
+  background: rgba(15,23,42,0.04);
+  padding: 1px 4px;
+  border-radius: 4px;
 }
 
 /* buttons */
@@ -225,16 +278,6 @@ body {
   margin: 3px 0 0;
   font-size: 0.7rem;
   color: #4b5563;
-}
-
-.form-surface {
-  background: rgba(255,255,255,0.8);
-  border: 1px solid rgba(148,163,184,0.35);
-  border-radius: 18px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
 /* topbar */
@@ -311,6 +354,7 @@ body {
 .icon-wrap.info { background: rgba(16,185,129,0.1); color: #059669; }
 .icon-wrap.warn { background: rgba(250,204,21,0.1); color: #f97316; }
 
+/* dynamic form (ฝั่งผู้ใช้) */
 .dynamic-field label {
   display: block;
   font-weight: 600;
