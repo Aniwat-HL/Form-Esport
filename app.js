@@ -12,6 +12,7 @@ const db = firebase.firestore();
 
 // ===== constants =====
 const ADMIN_CODE = "0826940174";
+const LOCAL_DRAFT_PREFIX = "formDraft_";
 
 // ===== globals =====
 let currentOptionList = [];    // ใช้ตอน admin เพิ่มคำถามแบบ select
@@ -59,7 +60,9 @@ if (logoutUserBtn) {
   if (badge) badge.textContent = sid;
 
   logoutUserBtn.addEventListener("click", () => {
-    localStorage.clear();
+    // ออกจากระบบ: ล้างแค่ session ไม่ต้องล้าง draft ทั้งหมด
+    localStorage.removeItem("role");
+    localStorage.removeItem("studentId");
     window.location.href = "index.html";
   });
 
@@ -69,10 +72,49 @@ if (logoutUserBtn) {
 }
 
 /**
+ * อ่าน draft จาก localStorage
+ */
+function getLocalDraft(studentId) {
+  if (!studentId) return {};
+  try {
+    const raw = localStorage.getItem(LOCAL_DRAFT_PREFIX + studentId);
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch (e) {
+    return {};
+  }
+}
+
+/**
+ * เขียน draft ลง localStorage
+ */
+function setLocalDraft(studentId, draftObj) {
+  if (!studentId) return;
+  try {
+    localStorage.setItem(
+      LOCAL_DRAFT_PREFIX + studentId,
+      JSON.stringify(draftObj || {})
+    );
+  } catch (e) {
+    // ถ้าเกิน quota ก็ข้าม
+    console.warn("cannot save draft", e);
+  }
+}
+
+/**
+ * ลบ draft เมื่อส่งสำเร็จ
+ */
+function clearLocalDraft(studentId) {
+  if (!studentId) return;
+  localStorage.removeItem(LOCAL_DRAFT_PREFIX + studentId);
+}
+
+/**
  * renderUserForm
  * - ดึงฟอร์มจาก form_questions
  * - พยายาม auto-fill จาก registrations/{studentId}
  * - ถ้าไม่เจอ doc ตาม id → ไปหา doc ที่ userId == studentId แทน
+ * - รวมกับ draft ใน localStorage (local > firestore)
  * - นับจำนวนการใช้ของแต่ละตัวเลือกใน dropdown เพื่อปิดตัวที่เต็ม
  */
 async function renderUserForm() {
@@ -84,7 +126,7 @@ async function renderUserForm() {
   // 1) โหลดคำถาม
   const qSnap = await db.collection("form_questions").orderBy("order", "asc").get();
 
-  // 2) โหลดคำตอบเก่าของ นศ. คนนี้ (ดึง 2 แบบ)
+  // 2) โหลดคำตอบเก่าของ นศ. คนนี้จาก Firestore
   let oldAnswers = {};
   let oldDoc = await db.collection("registrations").doc(studentId).get();
 
@@ -103,7 +145,10 @@ async function renderUserForm() {
     }
   }
 
-  // 3) โหลดทั้งหมดเพื่อไปนับ dropdown ที่เต็มแล้ว
+  // 3) โหลด draft จาก localStorage
+  const localDraft = getLocalDraft(studentId); // { questionId: value }
+
+  // 4) โหลดทั้งหมดเพื่อไปนับ dropdown ที่เต็มแล้ว
   const regSnap = await db.collection("registrations").get();
   const counts = {};
   regSnap.forEach(doc => {
@@ -117,12 +162,18 @@ async function renderUserForm() {
     });
   });
 
-  // 4) สร้างฟอร์ม
+  // 5) สร้างฟอร์ม
   wrap.innerHTML = "";
   qSnap.forEach(d => {
     const q = d.data();
     const qId = d.id;
-    const oldValue = oldAnswers[qId] || "";
+
+    // ลำดับค่าที่จะใส่:
+    // localDraft > firestoreAnswer > "" (autoEmail จะทับภายหลัง)
+    let valueFromDb = oldAnswers[qId] || "";
+    let valueFromLocal = localDraft[qId] || "";
+    let finalValue = valueFromLocal || valueFromDb || "";
+
     let inputHtml = "";
 
     // autoEmail = gen จากรหัส นศ.
@@ -131,7 +182,7 @@ async function renderUserForm() {
       : "";
 
     if (q.type === "textarea") {
-      inputHtml = `<textarea data-id="${qId}">${oldValue}</textarea>`;
+      inputHtml = `<textarea data-id="${qId}">${finalValue}</textarea>`;
     } else if (q.type === "select") {
       const opts = Array.isArray(q.options) ? q.options : [];
       const qCounts = counts[qId] || {};
@@ -140,24 +191,24 @@ async function renderUserForm() {
         ${opts.map(o => {
           const used = qCounts[o.label] || 0;
           if (!o.limit) {
-            // ไม่มี limit → เลือกได้ปกติ
-            return `<option value="${o.label}" ${o.label === oldValue ? "selected" : ""}>${o.label}</option>`;
+            return `<option value="${o.label}" ${o.label === finalValue ? "selected" : ""}>${o.label}</option>`;
           }
           const full = used >= o.limit;
           const label = full
             ? `${o.label} (เต็ม ${used}/${o.limit})`
             : `${o.label} (${used}/${o.limit})`;
           // ถ้าเคยเลือกอันที่เต็มไว้แล้ว ให้ยังเลือกได้
-          const shouldDisable = full && o.label !== oldValue;
-          return `<option value="${o.label}" ${o.label === oldValue ? "selected" : ""} ${shouldDisable ? "disabled" : ""}>${label}</option>`;
+          const shouldDisable = full && o.label !== finalValue;
+          return `<option value="${o.label}" ${o.label === finalValue ? "selected" : ""} ${shouldDisable ? "disabled" : ""}>${label}</option>`;
         }).join("")}
       </select>`;
     } else {
       // text
       if (q.autoEmail) {
+        // autoEmail จะ override ทั้ง local และ db
         inputHtml = `<input type="text" data-id="${qId}" value="${autoEmailValue}" readonly style="background:#f3f4f6;" />`;
       } else {
-        inputHtml = `<input type="text" data-id="${qId}" value="${oldValue}" />`;
+        inputHtml = `<input type="text" data-id="${qId}" value="${finalValue}" />`;
       }
     }
 
@@ -167,6 +218,16 @@ async function renderUserForm() {
         ${inputHtml}
       </div>
     `;
+  });
+
+  // 6) ผูก event เก็บ draft ทันทีที่กรอก
+  wrap.querySelectorAll("[data-id]").forEach(el => {
+    el.addEventListener("input", () => {
+      const qid = el.dataset.id;
+      const currentDraft = getLocalDraft(studentId);
+      currentDraft[qid] = el.value;
+      setLocalDraft(studentId, currentDraft);
+    });
   });
 }
 
@@ -254,6 +315,9 @@ async function submitUserForm() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
+    // ลบ draft หลังส่งสำเร็จ
+    clearLocalDraft(uid);
+
     // โชว์ success แล้วพากลับ login
     if (successBox) {
       successBox.classList.remove("hidden");
@@ -261,8 +325,9 @@ async function submitUserForm() {
     }
     btn.textContent = "ส่งแล้ว ✅";
 
-    // เคลียร์ session
-    localStorage.clear();
+    // เคลียร์ session แค่ role/id เพื่อให้ออกจากระบบ
+    localStorage.removeItem("role");
+    localStorage.removeItem("studentId");
 
     setTimeout(() => {
       window.location.href = "index.html";
