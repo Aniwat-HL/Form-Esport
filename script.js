@@ -13,12 +13,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const db = firebase.firestore();
   console.log("Firebase connected!");
 
-  // ====== 2. constants / state ======
-  const ADMIN_CODE = "0826940174";           // รหัสแอดมิน
-  let currentStudentId = null;               // ผู้ใช้ที่ล็อกอิน
-  let currentQuestions = [];                 // เอาไว้สร้างฟอร์มฝั่งผู้ใช้
-  let editingQuestionId = null;              // ตอนแก้ไขคำถาม
-  let currentOptionList = [];                // ตัวเลือกของคำถาม select/radio
+  // ====== 2. CONSTANTS & STATE ======
+  const ADMIN_CODE = "0826940174";   // รหัสแอดมิน
+  // คำถามไหนที่ต้อง "จำกัดจำนวน" ให้เปลี่ยนชื่อนี้ให้ตรงกับคำถามที่แอดมินจะตั้ง
+  const LIMIT_QUESTION_LABEL = "ตำแหน่งที่อยากเป็น";
+
+  let currentStudentId = null;
+  let currentQuestions = [];
+  let editingQuestionId = null;
+  let currentOptionList = [];  // สำหรับ select / radio ตอนเพิ่มคำถาม
 
   // ====== 3. DOM ======
   const loginScreen = document.getElementById("login-screen");
@@ -63,7 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const adminIdsMsg = document.getElementById("admin-ids-msg");
   const backToAdminMenu3 = document.getElementById("back-to-admin-menu-3");
 
-  // ====== 4. helper show screen ======
+  // ====== helper: show screen ======
   function showScreen(el) {
     [
       loginScreen,
@@ -76,7 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
     el.classList.add("active");
   }
 
-  // ====== 5. login ======
+  // ====== 4. LOGIN ======
   async function handleLogin() {
     const code = (universalIdInput.value || "").trim();
     if (!code) {
@@ -85,13 +88,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     loginMsg.textContent = "";
 
-    // admin
+    // แอดมิน
     if (code === ADMIN_CODE) {
       showScreen(adminMenuScreen);
       return;
     }
 
-    // user → ตรวจ allowed_students
+    // ผู้ใช้ → check allowed_students
     try {
       const doc = await db.collection("allowed_students").doc(code).get();
       if (!doc.exists) {
@@ -112,7 +115,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === "Enter") handleLogin();
   });
 
-  // ====== 6. user form ======
+  // ====== 5. USER FORM ======
   async function loadFormForUser() {
     dynamicForm.innerHTML = "กำลังโหลด...";
     try {
@@ -200,14 +203,16 @@ document.addEventListener("DOMContentLoaded", () => {
     return wrap;
   }
 
+  // ====== 5.1 submit + check limit ======
   async function submitUserForm() {
     if (!currentStudentId) {
       userFormMsg.textContent = "กรุณาเข้าสู่ระบบก่อน";
       return;
     }
 
+    // เก็บคำตอบทั้งหมด
     const answers = {};
-    currentQuestions.forEach(q => {
+    currentQuestions.forEach((q) => {
       if (q.type === "radio") {
         const checked = dynamicForm.querySelector(`input[name="${q.id}"]:checked`);
         answers[q.id] = checked ? checked.value : "";
@@ -217,16 +222,71 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
+    // หาว่าคำถามไหนคือคำถามที่ต้องจำกัดจำนวน
+    let pickedRole = null;
+    currentQuestions.forEach((q) => {
+      if (q.label === LIMIT_QUESTION_LABEL) {
+        pickedRole = answers[q.id] || null;
+      }
+    });
+
     try {
+      // ถ้ามีตัวเลือกที่ต้องจำกัด
+      if (pickedRole) {
+        const roleRef = db.collection("role_limits").doc(pickedRole);
+        const roleSnap = await roleRef.get();
+
+        if (roleSnap.exists) {
+          const rd = roleSnap.data();
+          const current = rd.current || 0;
+          const max = rd.max || 0;
+
+          if (current >= max) {
+            userFormMsg.textContent = `ตำแหน่ง "${pickedRole}" เต็มแล้ว (${current}/${max}) กรุณาเลือกตำแหน่งอื่น`;
+            return;
+          }
+
+          // ยังไม่เต็ม → บันทึกคำตอบก่อน
+          const regRef = await db.collection("registrations").add({
+            studentId: currentStudentId,
+            answers,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+
+          // อัปเดตจำนวนใน role_limits แบบ transaction
+          await db.runTransaction(async (tx) => {
+            const fresh = await tx.get(roleRef);
+            if (!fresh.exists) return;
+            const data = fresh.data();
+            const cur = data.current || 0;
+            const mx = data.max || 0;
+            if (cur >= mx) {
+              throw new Error("SLOT_FULL");
+            }
+            tx.update(roleRef, { current: cur + 1 });
+          });
+
+          userFormMsg.textContent = "ส่งแบบฟอร์มเรียบร้อย ✅";
+          return;
+        }
+        // ถ้า role นี้ไม่มีใน role_limits → ถือว่าไม่ล็อก → ส่งปกติ
+      }
+
+      // ส่งปกติ (ไม่มี role จำกัด)
       await db.collection("registrations").add({
         studentId: currentStudentId,
         answers,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
       userFormMsg.textContent = "ส่งแบบฟอร์มเรียบร้อย ✅";
+
     } catch (err) {
       console.error(err);
-      userFormMsg.textContent = "ส่งไม่สำเร็จ";
+      if (err.message === "SLOT_FULL") {
+        userFormMsg.textContent = `ขออภัย ตำแหน่ง "${pickedRole}" ถูกจองจนเต็มแล้ว ให้ลองเลือกตำแหน่งอื่น`;
+      } else {
+        userFormMsg.textContent = "ส่งแบบฟอร์มไม่สำเร็จ ❌";
+      }
     }
   }
 
@@ -237,7 +297,7 @@ document.addEventListener("DOMContentLoaded", () => {
     showScreen(loginScreen);
   });
 
-  // ====== 7. admin menu ======
+  // ====== 6. ADMIN MENU ======
   adminLogoutBtn.addEventListener("click", () => {
     showScreen(loginScreen);
   });
@@ -269,7 +329,7 @@ document.addEventListener("DOMContentLoaded", () => {
   backToAdminMenu2.addEventListener("click", () => showScreen(adminMenuScreen));
   backToAdminMenu3.addEventListener("click", () => showScreen(adminMenuScreen));
 
-  // ====== 8. admin form list (สำคัญ: มีเพิ่ม/ลบตัวเลือก) ======
+  // ====== 7. ADMIN: FORM LIST ======
   async function loadAdminFormList() {
     adminFormList.innerHTML = "กำลังโหลด...";
     const snap = await db.collection("form_questions").orderBy("order").get();
@@ -278,12 +338,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const d = doc.data();
       const id = doc.id;
       arr.push(`
-        <div class="admin-item" data-id="${id}">
-          <div>
-            <strong>${d.label || "(ไม่มีชื่อ)"}</strong> <small>(${d.type})</small>
-            ${d.options && d.options.length ? `<div>ตัวเลือก: ${d.options.join(", ")}</div>` : ""}
-          </div>
-          <div>
+        <div class="box">
+          <div><strong>${d.label || "(ไม่มีชื่อ)"}</strong> <small>(${d.type})</small></div>
+          ${d.options && d.options.length ? `<div>ตัวเลือก: ${d.options.join(", ")}</div>` : ""}
+          <div style="margin-top:6px;">
             <button class="small-btn-edit" data-id="${id}">แก้ไข</button>
             <button class="small-btn-del" data-id="${id}">ลบ</button>
           </div>
@@ -330,7 +388,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // render ตัวเลือกที่เพิ่มแล้ว
+  // ====== 7.1 OPTION EDITOR ======
   function renderOptionList() {
     optionListEl.innerHTML = "";
     currentOptionList.forEach((opt, index) => {
@@ -350,7 +408,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ถ้าเปลี่ยนประเภท ให้โชว์/ซ่อนกล่องตัวเลือก
   newQuestionType.addEventListener("change", () => {
     const t = newQuestionType.value;
     if (t === "select" || t === "radio") {
@@ -362,7 +419,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // ปุ่มเพิ่มตัวเลือก
   addOptionBtn.addEventListener("click", () => {
     const val = (newOptionText.value || "").trim();
     if (!val) return;
@@ -371,10 +427,10 @@ document.addEventListener("DOMContentLoaded", () => {
     renderOptionList();
   });
 
-  // ปุ่มบันทึก (เพิ่ม/แก้ไข)
   addQuestionBtn.addEventListener("click", async () => {
     const label = (newQuestionLabel.value || "").trim();
     const type = newQuestionType.value;
+
     if (!label) {
       adminFormMsg.textContent = "กรุณาใส่ชื่อคำถาม";
       return;
@@ -387,11 +443,10 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     if (editingQuestionId) {
-      // update
       await db.collection("form_questions").doc(editingQuestionId).update(data);
       adminFormMsg.textContent = "อัปเดตคำถามสำเร็จ";
     } else {
-      // add new → หา order สุดท้าย
+      // หา order ต่อท้าย
       const last = await db.collection("form_questions").orderBy("order", "desc").limit(1).get();
       let nextOrder = 1;
       last.forEach(doc => {
@@ -416,7 +471,7 @@ document.addEventListener("DOMContentLoaded", () => {
     await loadAdminFormList();
   });
 
-  // ====== 9. admin users ======
+  // ====== 8. ADMIN: USERS ======
   async function loadAdminUsers() {
     adminUsersList.innerHTML = "กำลังโหลด...";
     // โหลดคำถามไว้ map label
@@ -451,7 +506,7 @@ document.addEventListener("DOMContentLoaded", () => {
     adminUsersList.innerHTML = arr.join("");
   }
 
-  // ====== 10. admin allowed students ======
+  // ====== 9. ADMIN: ALLOWED STUDENTS ======
   async function loadAllowedStudents() {
     adminIdsList.innerHTML = "กำลังโหลด...";
     const snap = await db.collection("allowed_students").get();
