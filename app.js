@@ -1,4 +1,4 @@
-// ========== Firebase ========== //
+// ========== Firebase Init ==========
 const firebaseConfig = {
   apiKey: "AIzaSyBqnVyK9BeJqMKuyYCqXzGOd1-07eEltEI",
   authDomain: "form-esport.firebaseapp.com",
@@ -9,16 +9,22 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+
 const ADMIN_CODE = "0826940174";
 
+// เก็บตัวเลือก dropdown ชั่วคราว (ตอนเพิ่ม / แก้ไข)
+let currentOptionList = [];
 
-// ========== 1. LOGIN PAGE ========== //
+// ======================================================
+// 1) LOGIN PAGE
+// ======================================================
 const loginBtn = document.getElementById("login-btn");
 if (loginBtn) {
   loginBtn.addEventListener("click", async () => {
     const id = document.getElementById("student-id-input").value.trim();
     if (!id) return alert("กรุณากรอกรหัส");
 
+    // admin
     if (id === ADMIN_CODE) {
       localStorage.setItem("role", "admin");
       localStorage.setItem("studentId", id);
@@ -26,8 +32,12 @@ if (loginBtn) {
       return;
     }
 
+    // student
     const doc = await db.collection("allowed_students").doc(id).get();
-    if (!doc.exists) return alert("ยังไม่ได้รับอนุญาต");
+    if (!doc.exists) {
+      alert("ยังไม่ได้รับอนุญาตให้เข้าสู่ระบบ");
+      return;
+    }
 
     localStorage.setItem("role", "student");
     localStorage.setItem("studentId", id);
@@ -36,17 +46,23 @@ if (loginBtn) {
 }
 
 
-// ========== 2. USER PAGE ========== //
+// ======================================================
+// 2) USER PAGE
+// ======================================================
 const logoutUserBtn = document.getElementById("logout-btn-user");
 if (logoutUserBtn) {
-  document.getElementById("logged-in-as").textContent = localStorage.getItem("studentId") || "";
+  // set id
+  document.getElementById("logged-in-as").textContent = localStorage.getItem("studentId") || "-";
+
   logoutUserBtn.addEventListener("click", () => {
     localStorage.clear();
     window.location.href = "index.html";
   });
 
+  // render form
   renderUserForm();
 
+  // submit
   document.getElementById("submit-user-form").addEventListener("click", submitUserForm);
 }
 
@@ -72,7 +88,7 @@ async function renderUserForm() {
 
     wrap.innerHTML += `
       <div class="question-field">
-        <label>${q.label}${q.required ? ' *' : ''}${q.limit ? ` (รับ ${q.limit} คน)` : ''}</label>
+        <label>${q.label}${q.required ? " *" : ""}${q.limit ? ` (รับ ${q.limit} คน)` : ""}</label>
         ${inputHtml}
       </div>
     `;
@@ -83,23 +99,19 @@ async function submitUserForm() {
   const uid = localStorage.getItem("studentId");
   if (!uid) return;
 
-  // ดึงคำถามมาเช็ก limit ก่อน
+  // ดึงคำถามมาเช็ก limit แบบง่ายสุด (global)
   const qSnap = await db.collection("form_questions").get();
   const questions = {};
   qSnap.forEach(d => questions[d.id] = d.data());
 
-  // นับจำนวนคนตอบแล้ว (แบบง่าย: นับเอกสาร registrations ทั้งหมด)
   const regSnap = await db.collection("registrations").get();
   const totalReg = regSnap.size;
 
-  // ถ้ามีคำถามที่ตั้ง limit ไว้ แล้วเราอยากเช็ก “จำนวนทั้งหมด” ก่อนส่ง
-  // (ถ้าคุณอยากให้ limit แยกเป็นรายคำถาม ต้องเก็บการเลือกไว้เพิ่ม)
-  // ตอนนี้ทำแบบ global limit ตัวเดียวให้เป็นตัวอย่าง
-  // หา max limit จากทุกคำถาม
   let maxLimit = 0;
   Object.values(questions).forEach(q => {
     if (q.limit && q.limit > maxLimit) maxLimit = q.limit;
   });
+
   if (maxLimit && totalReg >= maxLimit) {
     alert("จำนวนผู้ตอบครบตามที่กำหนดแล้ว");
     return;
@@ -120,16 +132,19 @@ async function submitUserForm() {
 }
 
 
-// ========== 3. ADMIN PAGE ========== //
+// ======================================================
+// 3) ADMIN PAGE
+// ======================================================
 const logoutAdminBtn = document.getElementById("logout-btn-admin");
 if (logoutAdminBtn) {
   document.getElementById("admin-logged-in-as").textContent = localStorage.getItem("studentId") || "";
+
   logoutAdminBtn.addEventListener("click", () => {
     localStorage.clear();
     window.location.href = "index.html";
   });
 
-  // ทำให้ tab ซ้ายกดได้
+  // tab ซ้าย
   document.querySelectorAll(".nav-item").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".nav-item").forEach(b => b.classList.remove("active"));
@@ -141,27 +156,61 @@ if (logoutAdminBtn) {
     });
   });
 
-  // เปลี่ยนฟิลด์ตัวเลือกตอนเลือก type = select
+  // ช่องเพิ่มตัวเลือก dropdown
   const typeSelect = document.getElementById("new-q-type");
   const optWrap = document.getElementById("new-q-options-wrap");
-  if (typeSelect && optWrap) {
+  const optInput = document.getElementById("new-q-option-input");
+  const optAddBtn = document.getElementById("new-q-option-add");
+  const optListEl = document.getElementById("new-q-options-list");
+
+  if (typeSelect) {
     typeSelect.addEventListener("change", () => {
-      if (typeSelect.value === "select") optWrap.style.display = "block";
-      else optWrap.style.display = "none";
+      if (typeSelect.value === "select") {
+        optWrap.style.display = "block";
+      } else {
+        optWrap.style.display = "none";
+        currentOptionList = [];
+        renderOptionList(optListEl);
+      }
     });
   }
 
-  // load data
+  if (optAddBtn) {
+    optAddBtn.addEventListener("click", () => {
+      const val = optInput.value.trim();
+      if (!val) return;
+      currentOptionList.push(val);
+      optInput.value = "";
+      renderOptionList(optListEl);
+    });
+  }
+
+  // โหลดข้อมูลเริ่มต้น
   loadQuestions();
   loadRegistrations();
   loadAllowed();
   loadRoles();
 
-  // add events
+  // ปุ่มหลัก
   document.getElementById("add-question-btn").addEventListener("click", addQuestion);
   document.getElementById("add-allowed-id-btn").addEventListener("click", addAllowed);
   document.getElementById("add-role-btn").addEventListener("click", addRole);
 }
+
+// แสดงรายการตัวเลือก dropdown ใน admin
+function renderOptionList(container) {
+  if (!container) return;
+  container.innerHTML = "";
+  currentOptionList.forEach((opt, idx) => {
+    const li = document.createElement("li");
+    li.innerHTML = `${opt} <button onclick="removeTempOption(${idx})">×</button>`;
+    container.appendChild(li);
+  });
+}
+window.removeTempOption = function(idx) {
+  currentOptionList.splice(idx, 1);
+  renderOptionList(document.getElementById("new-q-options-list"));
+};
 
 
 // ----- ADMIN: Questions -----
@@ -196,16 +245,9 @@ async function addQuestion() {
   const limitRaw = document.getElementById("new-q-limit").value.trim();
   const limit = limitRaw ? parseInt(limitRaw, 10) : null;
 
-  let options = [];
-  if (type === "select") {
-    const raw = document.getElementById("new-q-options").value.trim();
-    if (raw) {
-      options = raw.split(",").map(s => s.trim()).filter(Boolean);
-    }
-  }
-
   if (!label) return alert("กรอกชื่อคำถามก่อน");
 
+  // หา order
   const last = await db.collection("form_questions").orderBy("order", "desc").limit(1).get();
   let nextOrder = 1;
   last.forEach(d => {
@@ -217,29 +259,30 @@ async function addQuestion() {
     type,
     required,
     autoEmail,
-    options,
+    options: type === "select" ? currentOptionList : [],
     limit,
     order: nextOrder
   });
 
-  // clear
+  // reset
   document.getElementById("new-q-label").value = "";
   document.getElementById("new-q-required").checked = false;
   document.getElementById("new-q-autoemail").checked = false;
   document.getElementById("new-q-limit").value = "";
-  const optWrap = document.getElementById("new-q-options-wrap");
-  if (optWrap) optWrap.style.display = "none";
+  currentOptionList = [];
+  renderOptionList(document.getElementById("new-q-options-list"));
+  document.getElementById("new-q-options-wrap").style.display = "none";
+  document.getElementById("new-q-type").value = "text";
 
   loadQuestions();
 }
 
-async function editQuestion(id) {
-  // ดึงข้อมูลคำถาม
+window.editQuestion = async function(id) {
   const doc = await db.collection("form_questions").doc(id).get();
   if (!doc.exists) return;
   const q = doc.data();
 
-  // เอาข้อมูลไปใส่ในช่องเพิ่มด้านขวา เพื่อแก้ไขแทน
+  // เอาขึ้นฟอร์ม
   document.getElementById("new-q-label").value = q.label || "";
   document.getElementById("new-q-type").value = q.type || "text";
   document.getElementById("new-q-required").checked = !!q.required;
@@ -248,59 +291,53 @@ async function editQuestion(id) {
 
   if (q.type === "select") {
     document.getElementById("new-q-options-wrap").style.display = "block";
-    document.getElementById("new-q-options").value = (q.options || []).join(", ");
+    currentOptionList = Array.isArray(q.options) ? q.options : [];
+    renderOptionList(document.getElementById("new-q-options-list"));
   } else {
     document.getElementById("new-q-options-wrap").style.display = "none";
-    document.getElementById("new-q-options").value = "";
+    currentOptionList = [];
+    renderOptionList(document.getElementById("new-q-options-list"));
   }
 
-  // เปลี่ยนปุ่มเพิ่ม → เป็น “บันทึกการแก้ไข”
-  const btn = document.getElementById("add-question-btn");
-  btn.textContent = "บันทึกการแก้ไข";
-  btn.onclick = async () => {
-    // เก็บค่าที่แก้
+  // เปลี่ยนปุ่มเป็น บันทึกการแก้ไข
+  const addBtn = document.getElementById("add-question-btn");
+  addBtn.textContent = "บันทึกการแก้ไข";
+  addBtn.onclick = async () => {
     const newLabel = document.getElementById("new-q-label").value.trim();
     const newType = document.getElementById("new-q-type").value;
-    const newRequired = document.getElementById("new-q-required").checked;
-    const newAutoEmail = document.getElementById("new-q-autoemail").checked;
-    const limitRaw2 = document.getElementById("new-q-limit").value.trim();
-    const newLimit = limitRaw2 ? parseInt(limitRaw2, 10) : null;
-
-    let newOptions = [];
-    if (newType === "select") {
-      const raw = document.getElementById("new-q-options").value.trim();
-      if (raw) newOptions = raw.split(",").map(s => s.trim()).filter(Boolean);
-    }
+    const newReq = document.getElementById("new-q-required").checked;
+    const newAuto = document.getElementById("new-q-autoemail").checked;
+    const newLimitRaw = document.getElementById("new-q-limit").value.trim();
+    const newLimit = newLimitRaw ? parseInt(newLimitRaw, 10) : null;
 
     await db.collection("form_questions").doc(id).update({
       label: newLabel,
       type: newType,
-      required: newRequired,
-      autoEmail: newAutoEmail,
-      options: newOptions,
+      required: newReq,
+      autoEmail: newAuto,
+      options: newType === "select" ? currentOptionList : [],
       limit: newLimit
     });
 
-    // รีเซ็ตปุ่มกลับ
-    btn.textContent = "เพิ่มคำถาม";
-    btn.onclick = addQuestion;
+    // reset ปุ่ม
+    addBtn.textContent = "เพิ่มคำถาม";
+    addBtn.onclick = addQuestion;
 
-    // เคลียร์ฟอร์ม
+    // reset form
     document.getElementById("new-q-label").value = "";
     document.getElementById("new-q-limit").value = "";
-    document.getElementById("new-q-options").value = "";
+    currentOptionList = [];
+    renderOptionList(document.getElementById("new-q-options-list"));
     document.getElementById("new-q-options-wrap").style.display = "none";
-    document.getElementById("new-q-required").checked = false;
-    document.getElementById("new-q-autoemail").checked = false;
 
     loadQuestions();
   };
-}
+};
 
-async function deleteQuestion(id) {
+window.deleteQuestion = async function(id) {
   await db.collection("form_questions").doc(id).delete();
   loadQuestions();
-}
+};
 
 
 // ----- ADMIN: Registrations -----
@@ -349,10 +386,10 @@ async function addAllowed() {
   loadAllowed();
 }
 
-async function removeAllowed(id) {
+window.removeAllowed = async function(id) {
   await db.collection("allowed_students").doc(id).delete();
   loadAllowed();
-}
+};
 
 
 // ----- ADMIN: Roles -----
@@ -383,7 +420,7 @@ async function addRole() {
   loadRoles();
 }
 
-async function deleteRole(id) {
+window.deleteRole = async function(id) {
   await db.collection("roles").doc(id).delete();
   loadRoles();
-}
+};
