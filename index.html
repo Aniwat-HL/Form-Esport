@@ -13,7 +13,7 @@
   <div class="app">
     <h1>ESport Registration</h1>
 
-    <!-- 1) Login -->
+    <!-- 1) LOGIN -->
     <section id="login-screen" class="screen active">
       <h2>เข้าสู่ระบบ</h2>
       <input type="text" id="universal-id" placeholder="รหัสนักศึกษา / รหัสแอดมิน" />
@@ -21,7 +21,7 @@
       <p id="login-msg" class="msg"></p>
     </section>
 
-    <!-- 2) User form -->
+    <!-- 2) USER FORM -->
     <section id="user-form-screen" class="screen">
       <h2>แบบฟอร์มสมัคร</h2>
       <form id="dynamic-form"></form>
@@ -29,7 +29,7 @@
       <button id="user-back-btn">ออกจากระบบ</button>
     </section>
 
-    <!-- 3) Admin menu -->
+    <!-- 3) ADMIN MENU -->
     <section id="admin-menu-screen" class="screen">
       <h2>แดชบอร์ดแอดมิน</h2>
       <button id="admin-edit-form-btn">จัดการฟอร์ม</button>
@@ -39,7 +39,7 @@
       <button id="admin-logout-btn" class="danger">ออกจากระบบ</button>
     </section>
 
-    <!-- 4) Admin: form editor -->
+    <!-- 4) ADMIN: FORM EDITOR -->
     <section id="admin-form-editor-screen" class="screen">
       <h2>จัดการฟอร์ม</h2>
       <div id="admin-form-list" class="list-box"></div>
@@ -75,14 +75,21 @@
       <button id="back-to-admin-menu-1">กลับ</button>
     </section>
 
-    <!-- 5) Admin: view users -->
+    <!-- 5) ADMIN: VIEW USERS -->
     <section id="admin-users-screen" class="screen">
       <h2>ข้อมูลผู้สมัคร</h2>
+
+      <div class="search-bar">
+        <input type="text" id="user-search-input" placeholder="ค้นหาด้วยรหัสนักศึกษา เช่น 6530611018" />
+        <button id="user-search-btn">ค้นหา</button>
+        <button id="user-search-clear-btn" class="ghost-btn">ล้าง</button>
+      </div>
+
       <div id="admin-users-list" class="list-box"></div>
       <button id="back-to-admin-menu-2">กลับ</button>
     </section>
 
-    <!-- 6) Admin: student ids -->
+    <!-- 6) ADMIN: STUDENT IDS -->
     <section id="admin-ids-screen" class="screen">
       <h2>จัดการรหัสนักศึกษา</h2>
       <div id="admin-ids-list" class="list-box"></div>
@@ -91,7 +98,7 @@
       <button id="back-to-admin-menu-3">กลับ</button>
     </section>
 
-    <!-- 7) Admin: role limits -->
+    <!-- 7) ADMIN: ROLE LIMITS -->
     <section id="admin-roles-screen" class="screen">
       <h2>จัดการจำนวนบทบาท</h2>
       <div id="admin-role-list" class="list-box"></div>
