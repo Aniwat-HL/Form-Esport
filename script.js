@@ -16,9 +16,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const ADMIN_CODE = "0826940174";
   let currentStudent = null;
   let editingQuestionId = null;
-  let tempOptions = [];       // [{label, limit}]
-  let allRegistrationsCache = [];  // สำหรับหน้าแอดมินค้นหา
-  let adminQuestionsCache = {};    // เก็บ label ของคำถามไว้ใช้ตอนแสดง
+  let tempOptions = []; // [{label, limit, targetForm}]
+  let allRegistrationsCache = [];
+  let adminQuestionsCache = {};
+  let currentBranchFormId = null; // ฟอร์มสาขาที่แสดงอยู่ตอนนี้
 
   // ===== 3. DOM =====
   const screens = {};
@@ -34,6 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const universalId = document.getElementById("universal-id");
 
   const dynamicForm = document.getElementById("dynamic-form");
+  const branchFormContainer = document.getElementById("branch-form-container");
   const userFormMsg = document.getElementById("user-form-msg");
   const userBackBtn = document.getElementById("user-back-btn");
 
@@ -50,6 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const optionList = document.getElementById("option-list");
   const newOptionText = document.getElementById("new-option-text");
   const newOptionLimit = document.getElementById("new-option-limit");
+  const newOptionTarget = document.getElementById("new-option-target");
   const addOptionBtn = document.getElementById("add-option-btn");
   const addQuestionBtn = document.getElementById("add-question-btn");
   const adminFormMsg = document.getElementById("admin-form-msg");
@@ -69,27 +72,22 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById(`back-to-admin-menu-${n}`)?.addEventListener("click", () => show("admin-menu-screen"));
   });
 
-  // ===== helper: build email =====
+  // ===== helper =====
   function buildPsuEmailFromStudentId(studentId) {
-    if (!studentStudentIdIsValid(studentId)) return "";
+    if (!studentId) return "";
     return `s${studentId}@phuket.psu.ac.th`;
   }
-  function studentStudentIdIsValid(sid) {
-    return !!sid; // จะเพิ่มเงื่อนไขก็ได้ เช่น /^\d{10}$/ ...
-  }
 
-  // ===== 4. LOGIN =====
+  // ===== LOGIN =====
   loginBtn?.addEventListener("click", async () => {
     const code = (universalId?.value || "").trim();
     if (!code) return safeMsg(loginMsg, "กรุณากรอกรหัส");
 
-    // admin
     if (code === ADMIN_CODE) {
       show("admin-menu-screen");
       return;
     }
 
-    // user
     const doc = await db.collection("allowed_students").doc(code).get();
     if (!doc.exists) {
       safeMsg(loginMsg, "รหัสนี้ยังไม่ได้รับอนุญาต");
@@ -107,9 +105,11 @@ document.addEventListener("DOMContentLoaded", () => {
     show("login-screen");
   });
 
-  // ===== 5. USER: LOAD FORM =====
+  // ===== USER: LOAD MAIN FORM =====
   async function loadUserForm() {
     dynamicForm.innerHTML = "กำลังโหลด...";
+    branchFormContainer.innerHTML = ""; // ล้างฟอร์มสาขา
+    currentBranchFormId = null;
 
     const snap = await db.collection("form_questions").orderBy("order").get();
     const questions = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -124,7 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
       label.textContent = q.label;
       wrap.appendChild(label);
 
-      // ✅ อีเมล auto (แค่มีคำว่า "อีเมล")
+      // auto email
       const normalized = (q.label || "").trim();
       const isEmailQuestion =
         normalized === "อีเมล" ||
@@ -143,7 +143,7 @@ document.addEventListener("DOMContentLoaded", () => {
         continue;
       }
 
-      // dropdown จำกัดจำนวน
+      // select (dropdown) + branch
       if (q.type === "select") {
         const sel = document.createElement("select");
         sel.name = q.id;
@@ -162,8 +162,26 @@ document.addEventListener("DOMContentLoaded", () => {
             o.textContent = optLabel;
           }
 
+          // เก็บ targetForm ไว้ใน dataset
+          if (opt.targetForm) {
+            o.dataset.targetForm = opt.targetForm;
+          }
+
           sel.appendChild(o);
         }
+
+        // เมื่อเปลี่ยนตัวเลือก → โหลดฟอร์มสาขา
+        sel.addEventListener("change", async (e) => {
+          const selected = e.target.selectedOptions[0];
+          const targetForm = selected.dataset.targetForm;
+          if (targetForm) {
+            await loadBranchForm(targetForm);
+          } else {
+            // ถ้าเปลี่ยนไปตัวที่ไม่มี target → ล้าง
+            branchFormContainer.innerHTML = "";
+            currentBranchFormId = null;
+          }
+        });
 
         wrap.appendChild(sel);
       }
@@ -182,7 +200,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dynamicForm.appendChild(wrap);
     }
 
-    // ปุ่มส่ง
+    // ปุ่มส่ง (จะส่งทั้งฟอร์มหลัก + ฟอร์มสาขา)
     const submitBtn = document.createElement("button");
     submitBtn.type = "button";
     submitBtn.textContent = "ส่งแบบฟอร์ม";
@@ -190,27 +208,98 @@ document.addEventListener("DOMContentLoaded", () => {
     dynamicForm.appendChild(submitBtn);
   }
 
-  // ===== 6. USER: SUBMIT =====
-  async function submitUserForm(questions) {
+  // ===== USER: LOAD BRANCH FORM =====
+  async function loadBranchForm(formId) {
+    branchFormContainer.innerHTML = "กำลังโหลดฟอร์มเพิ่มเติม...";
+    currentBranchFormId = formId;
+
+    const doc = await db.collection("form_pages").doc(formId).get();
+    if (!doc.exists) {
+      branchFormContainer.innerHTML = `<p class="msg">ไม่พบฟอร์มปลายทางชื่อ "${formId}"</p>`;
+      return;
+    }
+
+    const page = doc.data();
+    const qs = page.questions || [];
+
+    const frag = document.createElement("div");
+    frag.innerHTML = `<h3>${page.title || "ฟอร์มเพิ่มเติม"}</h3>`;
+
+    qs.forEach((q) => {
+      const wrap = document.createElement("div");
+      wrap.className = "dynamic-field";
+      const label = document.createElement("label");
+      label.textContent = q.label;
+      wrap.appendChild(label);
+
+      if (q.type === "textarea") {
+        const ta = document.createElement("textarea");
+        ta.name = `branch_${q.id}`;
+        wrap.appendChild(ta);
+      } else if (q.type === "select") {
+        const sel = document.createElement("select");
+        sel.name = `branch_${q.id}`;
+        (q.options || []).forEach((o) => {
+          const op = document.createElement("option");
+          op.value = o;
+          op.textContent = o;
+          sel.appendChild(op);
+        });
+        wrap.appendChild(sel);
+      } else {
+        const inp = document.createElement("input");
+        inp.type = "text";
+        inp.name = `branch_${q.id}`;
+        wrap.appendChild(inp);
+      }
+
+      frag.appendChild(wrap);
+    });
+
+    branchFormContainer.innerHTML = "";
+    branchFormContainer.appendChild(frag);
+  }
+
+  // ===== USER: SUBMIT (main + branch) =====
+  async function submitUserForm(mainQuestions) {
     if (!currentStudent) {
       safeMsg(userFormMsg, "กรุณาเข้าสู่ระบบก่อน");
       return;
     }
 
     const answers = {};
-    for (const q of questions) {
+
+    // เก็บฟอร์มหลัก
+    for (const q of mainQuestions) {
       const el = dynamicForm.querySelector(`[name="${q.id}"]`);
       const val = el ? el.value : "";
       answers[q.id] = typeof val === "string" ? val.trim() : val;
     }
 
-    // เช็กว่าเลือก role ที่จำกัดไหม
-    let roleToUpdate = null;
-    for (const q of questions) {
-      const rawVal = answers[q.id];
-      const val = typeof rawVal === "string" ? rawVal.trim() : rawVal;
-      if (!val) continue;
+    // เก็บฟอร์มสาขา
+    let branchData = null;
+    if (currentBranchFormId) {
+      const doc = await db.collection("form_pages").doc(currentBranchFormId).get();
+      if (doc.exists) {
+        const page = doc.data();
+        branchData = {
+          formId: currentBranchFormId,
+          title: page.title || "",
+          answers: {}
+        };
+        (page.questions || []).forEach((q) => {
+          const el = branchFormContainer.querySelector(`[name="branch_${q.id}"]`);
+          const val = el ? el.value : "";
+          branchData.answers[q.id] = val;
+        });
+      }
+    }
 
+    // ===== เช็ก role_limits จากฟอร์มหลักเหมือนเดิม =====
+    let roleToUpdate = null;
+    for (const q of mainQuestions) {
+      const val = (answers[q.id] || "").trim();
+      if (!val) continue;
       const rlRef = db.collection("role_limits").doc(val);
       const rlSnap = await rlRef.get();
       if (rlSnap.exists) {
@@ -224,14 +313,14 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // บันทึกลง registrations
+    // บันทึกทั้งหมด
     await db.collection("registrations").add({
       studentId: currentStudent,
       answers,
+      branch: branchData,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
 
-    // อัปเดตตัวนับบทบาท
     if (roleToUpdate) {
       await roleToUpdate.ref.update({
         current: (roleToUpdate.current || 0) + 1,
@@ -242,7 +331,7 @@ document.addEventListener("DOMContentLoaded", () => {
     await loadUserForm();
   }
 
-  // ===== 7. ADMIN MENU =====
+  // ===== ADMIN MENU =====
   adminLogoutBtn?.addEventListener("click", () => {
     if (universalId) universalId.value = "";
     show("login-screen");
@@ -274,7 +363,7 @@ document.addEventListener("DOMContentLoaded", () => {
     show("admin-roles-screen");
   });
 
-  // ===== 8. ADMIN: FORM EDITOR =====
+  // ===== ADMIN: FORM EDITOR =====
   newQuestionType?.addEventListener("change", () => {
     const t = newQuestionType.value;
     optionEditor.style.display = ["select","radio"].includes(t) ? "block" : "none";
@@ -283,12 +372,15 @@ document.addEventListener("DOMContentLoaded", () => {
   addOptionBtn?.addEventListener("click", () => {
     const label = (newOptionText.value || "").trim();
     const limit = (newOptionLimit.value || "").trim();
+    const target = (newOptionTarget.value || "").trim();
     if (!label) return;
     const item = { label };
     if (limit) item.limit = parseInt(limit);
+    if (target) item.targetForm = target;
     tempOptions.push(item);
     newOptionText.value = "";
     newOptionLimit.value = "";
+    newOptionTarget.value = "";
     renderOptionList();
   });
 
@@ -296,7 +388,10 @@ document.addEventListener("DOMContentLoaded", () => {
     optionList.innerHTML = "";
     tempOptions.forEach((o, i) => {
       const li = document.createElement("li");
-      li.textContent = o.limit ? `${o.label} (จำกัด ${o.limit})` : o.label;
+      let txt = o.label;
+      if (o.limit) txt += ` (จำกัด ${o.limit})`;
+      if (o.targetForm) txt += ` → ไปฟอร์ม: ${o.targetForm}`;
+      li.textContent = txt;
       const del = document.createElement("button");
       del.textContent = "ลบ";
       del.className = "small-btn";
@@ -329,7 +424,7 @@ document.addEventListener("DOMContentLoaded", () => {
       safeMsg(adminFormMsg, "เพิ่มคำถามแล้ว ✅");
     }
 
-    // สร้าง role_limits จากตัวเลือกที่มี limit
+    // สร้าง role_limits ด้วย (เฉพาะที่มี limit)
     for (const o of tempOptions) {
       const optLabel = (o.label || "").trim();
       if (o.limit) {
@@ -369,7 +464,12 @@ document.addEventListener("DOMContentLoaded", () => {
           ${
             x.options?.length
               ? `<div>ตัวเลือก: ${x.options
-                  .map((o) => (o.limit ? `${o.label} (${o.limit})` : o.label))
+                  .map((o) => {
+                    let s = o.label;
+                    if (o.limit) s += ` (${o.limit})`;
+                    if (o.targetForm) s += ` → ${o.targetForm}`;
+                    return s;
+                  })
                   .join(", ")}</div>`
               : ""
           }
@@ -379,7 +479,7 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
     }).join("");
 
-    // edit
+    // แก้ไข
     adminFormList.querySelectorAll(".small-btn-edit").forEach((btn) => {
       btn.addEventListener("click", async (e) => {
         const id = e.target.dataset.id;
@@ -395,7 +495,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    // delete
+    // ลบ
     adminFormList.querySelectorAll("[data-del]").forEach((btn) => {
       btn.addEventListener("click", async (e) => {
         const id = e.target.dataset.del;
@@ -406,16 +506,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ===== 9. ADMIN: view users (with search) =====
+  // ===== ADMIN: view users =====
   async function loadAdminUsers() {
     adminUsersList.innerHTML = "กำลังโหลด...";
 
-    // โหลดคำถามไว้แปลง id -> label
     const qSnap = await db.collection("form_questions").orderBy("order").get();
     adminQuestionsCache = {};
     qSnap.forEach((d) => (adminQuestionsCache[d.id] = d.data()));
 
-    // โหลดผู้สมัครทั้งหมด
     const snap = await db.collection("registrations").orderBy("createdAt", "desc").get();
     allRegistrationsCache = snap.docs.map((d) => ({
       id: d.id,
@@ -424,7 +522,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     renderAdminUsers(allRegistrationsCache);
 
-    // bind search
     if (userSearchBtn) {
       userSearchBtn.onclick = () => {
         const q = (userSearchInput.value || "").trim();
@@ -457,15 +554,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderAdminUsers(list) {
-    const box = document.getElementById("admin-users-list");
-    if (!box) return;
-
+    if (!adminUsersList) return;
     if (!list || list.length === 0) {
-      box.innerHTML = "<p>ไม่พบข้อมูล</p>";
+      adminUsersList.innerHTML = "<p>ไม่พบข้อมูล</p>";
       return;
     }
 
-    box.innerHTML = list
+    adminUsersList.innerHTML = list
       .map((item) => {
         const answers = item.answers || {};
         const answersHtml = Object.keys(answers)
@@ -474,6 +569,14 @@ document.addEventListener("DOMContentLoaded", () => {
             return `<div class="admin-user-answer"><strong>${qLabel}:</strong> ${answers[qid]}</div>`;
           })
           .join("");
+
+        let branchHtml = "";
+        if (item.branch) {
+          branchHtml = `<div class="admin-user-answer"><strong>ฟอร์มเพิ่มเติม (${item.branch.formId}):</strong></div>` +
+            Object.keys(item.branch.answers || {}).map((k) => {
+              return `<div class="admin-user-answer" style="margin-left:10px;">${k}: ${item.branch.answers[k]}</div>`;
+            }).join("");
+        }
 
         const timeStr = item.createdAt
           ? item.createdAt.toDate().toLocaleString("th-TH")
@@ -486,13 +589,14 @@ document.addEventListener("DOMContentLoaded", () => {
               <span class="admin-user-time">${timeStr}</span>
             </div>
             ${answersHtml}
+            ${branchHtml}
           </div>
         `;
       })
       .join("");
   }
 
-  // ===== 10. ADMIN: allowed_students =====
+  // ===== ADMIN: allowed_students =====
   async function loadAllowedStudents() {
     adminIdsList.innerHTML = "กำลังโหลด...";
     const snap = await db.collection("allowed_students").get();
@@ -531,7 +635,7 @@ document.addEventListener("DOMContentLoaded", () => {
     await loadAllowedStudents();
   });
 
-  // ===== 11. ADMIN: role_limits =====
+  // ===== ADMIN: role_limits =====
   async function loadRoleLimits() {
     adminRoleList.innerHTML = "กำลังโหลด...";
     const snap = await db.collection("role_limits").get();
@@ -558,7 +662,6 @@ document.addEventListener("DOMContentLoaded", () => {
       })
       .join("");
 
-    // update
     adminRoleList.querySelectorAll(".update").forEach((btn) => {
       btn.addEventListener("click", async (e) => {
         const id = e.target.dataset.id;
@@ -572,7 +675,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    // delete
     adminRoleList.querySelectorAll("[data-del]").forEach((btn) => {
       btn.addEventListener("click", async (e) => {
         const id = e.target.dataset.del;
