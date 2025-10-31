@@ -12,10 +12,10 @@ const db = firebase.firestore();
 
 const ADMIN_CODE = "0826940174";
 
-// ตัวแปร admin
-let currentOptionList = [];    // ตัวเลือกของแบบฟอร์มใหม่ (select)
+// ตัวแปรหน้าจอ
+let currentOptionList = [];    // ตัวเลือกของคำถามใหม่ (select)
 let REG_CACHE = [];           // ผู้สมัครทั้งหมด
-let FORM_QUESTION_CACHE = []; // หัวตารางผู้สมัคร
+let FORM_QUESTION_CACHE = []; // หัวตารางจาก form_questions
 
 /* =========================================================
    1) LOGIN PAGE (index.html)
@@ -70,7 +70,7 @@ async function renderUserForm() {
 
   const qSnap = await db.collection("form_questions").orderBy("order", "asc").get();
 
-  // นับว่าตัวเลือกไหนใช้ไปกี่คนจาก registrations
+  // นับตัวเลือกที่ถูกใช้
   const regSnap = await db.collection("registrations").get();
   const counts = {}; // counts[qid][optionLabel] = used
   regSnap.forEach(doc => {
@@ -120,7 +120,7 @@ async function renderUserForm() {
   });
 }
 
-// ส่งฟอร์มฝั่ง user + เช็กโควต้าอีกครั้ง
+// ส่งฟอร์มฝั่ง user + เช็ก quota
 async function submitUserForm() {
   const uid = localStorage.getItem("studentId");
   if (!uid) return;
@@ -129,13 +129,12 @@ async function submitUserForm() {
   const questions = {};
   qSnap.forEach(d => questions[d.id] = d.data());
 
-  // เก็บคำตอบจากหน้า
   const answers = {};
   document.querySelectorAll("[data-id]").forEach(el => {
     answers[el.dataset.id] = el.value;
   });
 
-  // เช็กโควต้าตัวเลือกอีกชั้น
+  // เช็กทุก dropdown
   for (const qId in answers) {
     const q = questions[qId];
     if (!q) continue;
@@ -193,7 +192,7 @@ if (logoutAdminBtn) {
     });
   });
 
-  // controls ของ dropdown ตอนเพิ่มคำถาม
+  // controls เพิ่มคำถาม
   const typeSelect = document.getElementById("new-q-type");
   const optWrap = document.getElementById("new-q-options-wrap");
   const optInput = document.getElementById("new-q-option-input");
@@ -228,7 +227,7 @@ if (logoutAdminBtn) {
     });
   }
 
-  // โหลดข้อมูลทั้งหมด
+  // โหลดข้อมูล
   loadQuestions();
   loadRegistrations();
   loadAllowed();
@@ -285,7 +284,6 @@ async function addQuestion() {
   const autoEmail = document.getElementById("new-q-autoemail").checked;
   if (!label) return alert("กรอกชื่อคำถามก่อน");
 
-  // หา order ล่าสุด
   const last = await db.collection("form_questions").orderBy("order", "desc").limit(1).get();
   let nextOrder = 1;
   last.forEach(d => {
@@ -301,7 +299,6 @@ async function addQuestion() {
     order: nextOrder
   });
 
-  // reset
   document.getElementById("new-q-label").value = "";
   document.getElementById("new-q-required").checked = false;
   document.getElementById("new-q-autoemail").checked = false;
@@ -349,7 +346,6 @@ window.editQuestion = async function(id) {
       options: newType === "select" ? currentOptionList : []
     });
 
-    // reset
     btn.textContent = "เพิ่มคำถาม";
     btn.onclick = addQuestion;
     document.getElementById("new-q-label").value = "";
@@ -366,7 +362,7 @@ window.deleteQuestion = async function(id) {
   loadQuestions();
 };
 
-/* ---------- ADMIN: ผู้สมัคร (table) ---------- */
+/* ---------- ADMIN: ผู้สมัคร (table) + ลบได้ ---------- */
 async function loadRegistrations() {
   const tableEl = document.getElementById("registrations-table");
   if (!tableEl) return;
@@ -381,7 +377,7 @@ async function loadRegistrations() {
     });
   });
 
-  // 2) โหลดผู้สมัคร + กัน createdAt ไม่มี
+  // 2) โหลดผู้สมัคร
   const snap = await db.collection("registrations").orderBy("createdAt", "desc").get();
   REG_CACHE = [];
   snap.forEach(d => {
@@ -391,7 +387,7 @@ async function loadRegistrations() {
       created = data.createdAt.toDate();
     }
     REG_CACHE.push({
-      id: d.id,                     // ไว้ใช้ลบ
+      id: d.id,
       userId: data.userId || d.id,
       answers: data.answers || {},
       createdAt: created
@@ -401,7 +397,7 @@ async function loadRegistrations() {
   // 3) render
   renderRegistrationsTable(REG_CACHE);
 
-  // 4) ผูก search
+  // 4) search
   const searchInput = document.getElementById("reg-search-input");
   if (searchInput && !searchInput.dataset.bound) {
     searchInput.addEventListener("input", () => {
@@ -424,7 +420,7 @@ function renderRegistrationsTable(items) {
   const totalLabel = document.getElementById("reg-total-label");
   if (!tableEl) return;
 
-  // head (+1 คอลัมน์ปุ่มลบ)
+  // head (+1 คอลัมน์ จัดการ)
   let theadHtml = `<thead><tr>
     <th class="sticky-col">รหัส นศ.</th>
     <th>เวลาส่ง</th>
@@ -465,13 +461,11 @@ function renderRegistrationsTable(items) {
   }
 }
 
-/* ลบผู้สมัครทีละรายการ */
 window.deleteRegistration = async function(regId) {
   const ok = confirm("ต้องการลบรายการนี้จริง ๆ ไหม?");
   if (!ok) return;
   try {
     await db.collection("registrations").doc(regId).delete();
-    // เอาออกจาก cache แล้ว render ใหม่
     REG_CACHE = REG_CACHE.filter(r => r.id !== regId);
     renderRegistrationsTable(REG_CACHE);
   } catch (err) {
@@ -479,49 +473,6 @@ window.deleteRegistration = async function(regId) {
     alert("ลบไม่ได้: " + err.message);
   }
 };
-
-
-function renderRegistrationsTable(items) {
-  const tableEl = document.getElementById("registrations-table");
-  const totalLabel = document.getElementById("reg-total-label");
-  if (!tableEl) return;
-
-  // head
-  let theadHtml = `<thead><tr>
-    <th class="sticky-col">รหัส นศ.</th>
-    <th>เวลาส่ง</th>
-    ${FORM_QUESTION_CACHE.map(q => `<th>${q.label}</th>`).join("")}
-  </tr></thead>`;
-
-  // body
-  let tbodyHtml = "<tbody>";
-  if (!items.length) {
-    tbodyHtml += `<tr><td colspan="${2 + FORM_QUESTION_CACHE.length}" style="padding:.75rem;">ไม่พบข้อมูล</td></tr>`;
-  } else {
-    items.forEach(r => {
-      tbodyHtml += `<tr>
-        <td class="sticky-col">${r.userId}</td>
-        <td>${r.createdAt instanceof Date ? r.createdAt.toLocaleString() : ""}</td>
-        ${FORM_QUESTION_CACHE.map(q => {
-          const val = r.answers[q.id];
-          if (val && typeof val === "object" && "value" in val) {
-            return `<td>${val.value}</td>`;
-          }
-          return `<td>${val ? val : ""}</td>`;
-        }).join("")}
-      </tr>`;
-    });
-  }
-  tbodyHtml += "</tbody>";
-
-  tableEl.innerHTML = theadHtml + tbodyHtml;
-
-  if (totalLabel) {
-    totalLabel.textContent = items.length
-      ? `พบ ${items.length} รายการ (ทั้งหมด ${REG_CACHE.length})`
-      : `ไม่พบข้อมูล (ทั้งหมด ${REG_CACHE.length})`;
-  }
-}
 
 /* ---------- ADMIN: รหัสอนุญาต ---------- */
 async function loadAllowed() {
@@ -553,7 +504,7 @@ window.removeAllowed = async function(id) {
   loadAllowed();
 };
 
-/* ---------- ADMIN: Roles (เวอร์ชันแก้แล้ว) ---------- */
+/* ---------- ADMIN: Roles (เวอร์ชันที่ขึ้นแน่นอน) ---------- */
 async function loadRoles() {
   const box = document.getElementById("roles-list");
   if (!box) return;
@@ -617,9 +568,10 @@ async function addRole() {
 window.deleteRole = async function(id) {
   try {
     await db.collection("roles").doc(id).delete();
-    loadRoles();
   } catch (err) {
     console.error("deleteRole error:", err);
     alert("ลบ role ไม่ได้: " + err.message);
+    return;
   }
+  loadRoles();
 };
