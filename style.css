@@ -481,3 +481,47 @@ body {
     width: 100%;
   }
 }
+.user-rules-box {
+  margin-top: 1rem;
+  padding: 1rem 1rem 1.1rem;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: .75rem;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.user-rules-box h3 {
+  margin: 0 0 .4rem;
+  font-weight: 600;
+}
+.user-rules-box h4 {
+  margin-top: .55rem;
+  font-size: .85rem;
+  font-weight: 600;
+}
+.user-rules-box ul {
+  margin: .25rem 0 .25rem 1.1rem;
+  padding: 0;
+  font-size: .78rem;
+  line-height: 1.35;
+}
+.rules-lead,
+.rules-note {
+  font-size: .78rem;
+  color: #92400e;
+}
+.user-rules-check {
+  display: flex;
+  gap: .5rem;
+  align-items: flex-start;
+  margin-top: .7rem;
+  font-size: .78rem;
+}
+.user-rules-check input {
+  margin-top: .15rem;
+  transform: scale(1.03);
+}
+.input-error-rules {
+  outline: 2px solid #f43f5e;
+  outline-offset: 2px;
+}
