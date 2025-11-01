@@ -247,6 +247,7 @@ async function renderUserForm() {
  * - เช็ก quota อีกรอบ
  * - บันทึก
  * - ลบ draft
+ * - ✅ เช็ก “ยอมรับระเบียบข้อบังคับและคุณสมบัติผู้เข้าแข่งขัน” จากหน้า user.html
  */
 async function submitUserForm() {
   const uid = localStorage.getItem("studentId");
@@ -281,6 +282,16 @@ async function submitUserForm() {
 
       answers[qid] = val;
     });
+
+    // ✅ เช็กกล่องกติกาที่เราใส่ใน user.html
+    const rulesEl = document.getElementById("accept-rules");
+    const acceptRules = rulesEl ? rulesEl.checked : false;
+    if (rulesEl && !acceptRules) {
+      missing.push("ยอมรับระเบียบข้อบังคับและคุณสมบัติผู้เข้าแข่งขัน");
+      rulesEl.classList.add("input-error-rules");
+    } else if (rulesEl) {
+      rulesEl.classList.remove("input-error-rules");
+    }
 
     if (missing.length) {
       alert("กรุณากรอกข้อมูลให้ครบในช่องต่อไปนี้:\n- " + missing.join("\n- "));
@@ -319,12 +330,13 @@ async function submitUserForm() {
       }
     }
 
-    // บันทึก
+    // บันทึก (ใช้ merge เพื่อไม่ทับข้อมูลเก่า)
     await db.collection("registrations").doc(uid).set({
       userId: uid,
       answers,
+      acceptRules: true, // ✅ เก็บว่าอ่าน/ยอมรับกติกาแล้ว
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    }, { merge: true });
 
     // ลบ draft
     clearLocalDraft(uid);
@@ -579,7 +591,8 @@ async function loadRegistrations() {
       id: d.id,
       userId: data.userId || d.id,
       answers: data.answers || {},
-      createdAt: created
+      createdAt: created,
+      acceptRules: data.acceptRules || false
     });
   });
 
@@ -612,12 +625,13 @@ function renderRegistrationsTable(items) {
     <th class="sticky-col">รหัส นศ.</th>
     <th>เวลาส่ง</th>
     ${FORM_QUESTION_CACHE.map(q => `<th>${q.label}</th>`).join("")}
+    <th>ยอมรับกติกา</th>
     <th>จัดการ</th>
   </tr></thead>`;
 
   let tbodyHtml = "<tbody>";
   if (!items.length) {
-    tbodyHtml += `<tr><td colspan="${3 + FORM_QUESTION_CACHE.length}" style="padding:.75rem;">ไม่พบข้อมูล</td></tr>`;
+    tbodyHtml += `<tr><td colspan="${4 + FORM_QUESTION_CACHE.length}" style="padding:.75rem;">ไม่พบข้อมูล</td></tr>`;
   } else {
     items.forEach(r => {
       tbodyHtml += `<tr>
@@ -630,6 +644,7 @@ function renderRegistrationsTable(items) {
           }
           return `<td>${val ? val : ""}</td>`;
         }).join("")}
+        <td>${r.acceptRules ? "✅" : "❌"}</td>
         <td><button class="btn ghost sm" onclick="deleteRegistration('${r.id}')">ลบ</button></td>
       </tr>`;
     });
