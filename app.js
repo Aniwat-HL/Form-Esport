@@ -11,7 +11,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 // ===== constants =====
-const ADMIN_CODE = "0826940174","0937426904";
+const ADMIN_CODE = "0826940174";
 const LOCAL_DRAFT_PREFIX = "formDraft_";
 
 // ===== globals =====
